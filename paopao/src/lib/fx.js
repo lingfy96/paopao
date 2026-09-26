@@ -106,6 +106,10 @@ function safe(fn) {
 }
 
 export const sfx = {
+  tear: safe((ac) => {
+    noise(ac, { dur: 0.22, freq: 1800, q: 0.65, gain: 0.13 });
+    noise(ac, { start: 0.07, dur: 0.16, freq: 2600, q: 0.8, gain: 0.07 });
+  }),
   /** Rising "blowing" tone while the bubble is held. Returns a stop() function. */
   inflate: (maxMs = 1400) => {
     try {

@@ -42,7 +42,15 @@ def pick():
     if not isinstance(p,dict):return jsonify(error='请提供JSON对象'),400
     if p.get('mode') not in ['mood','mbti','random']:return jsonify(error='不支持的模式'),400
     for key in ['profile','partner']:
-        if key in p and (not isinstance(p[key],dict) or any(not isinstance(p[key].get(k,[]),list) or any(not isinstance(v,str) for v in p[key].get(k,[])) for k in ['tags','actors','blacklist'])):return jsonify(error='画像格式不正确'),400
+        if key in p and (not isinstance(p[key],dict) or any(not isinstance(p[key].get(k,[]),list) or any(not isinstance(v,str) for v in p[key].get(k,[])) for k in ['tags','actors'])):return jsonify(error='画像格式不正确'),400
+    for key in ['profile', 'partner']:
+        entries = p.get(key, {}).get('blacklist', [])
+        if not isinstance(entries, list) or any(not (
+            isinstance(v, str) or (isinstance(v, dict) and isinstance(v.get('id'), str)
+            and v.get('type') in ['actor', 'genre', 'title']
+            and isinstance(v.get('name'), str) and v['name'].strip())
+        ) for v in entries):
+            return jsonify(error='黑名单格式不正确'), 400
     if not isinstance(p.get('text',''),str) or len(p.get('text',''))>2000:return jsonify(error='约束文本过长或格式错误'),400
     try:body,status=recommend(p);return jsonify(body),status
     except Exception:return jsonify(error='匹配服务暂不可用，请使用本地推荐'),503

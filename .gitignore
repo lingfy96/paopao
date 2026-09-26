@@ -3,3 +3,19 @@ dist/
 __pycache__/
 *.sqlite3
 .venv/
+
+# Generated visual QA, recordings, and scratch outputs (never commit)
+screenshots/
+qa-artifacts/
+test-results/
+playwright-report/
+.reference/
+.tmp/
+tmp/
+*.log
+*.patch
+*.tar.gz
+*.zip
+*.mp4
+*.webm
+*.tsbuildinfo
