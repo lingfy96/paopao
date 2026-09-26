@@ -1,3 +1,4 @@
+import { normalizeBlacklist } from './blacklist.js';
 // Single persistence layer. Business code never touches localStorage / IndexedDB directly,
 // so a cloud backend (Supabase, CloudBase…) only needs to replace this file.
 
@@ -56,7 +57,7 @@ function remove(key) {
 const normalizeProfile = (p) => ({
   tags: Array.isArray(p?.tags) ? p.tags.filter((x) => typeof x === 'string') : [],
   actors: Array.isArray(p?.actors) ? p.actors.filter((x) => typeof x === 'string') : [],
-  blacklist: Array.isArray(p?.blacklist) ? p.blacklist.filter((x) => typeof x === 'string') : [],
+  blacklist: normalizeBlacklist(p?.blacklist),
 });
 
 // ---------- IndexedDB image store (with in-memory fallback) ----------

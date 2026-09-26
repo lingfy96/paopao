@@ -11,3 +11,11 @@ class ApiTest(unittest.TestCase):
  def test_empty(self):self.assertEqual(self.client.post('/api/recommend',json={'mode':'random','text':'1分钟以内'}).status_code,422)
  def test_random(self):self.assertEqual(self.client.get('/api/movies/random?blacklist=恐怖').status_code,200)
  def test_bad_input(self):self.assertEqual(self.client.post('/api/recommend',json={'mode':'mood','profile':{'tags':'wrong'}}).status_code,400)
+
+ def test_typed_blacklist(self):
+  r=self.client.post('/api/recommend',json={'mode':'mood','mood':'有点 emo','profile':{'tags':['治愈'],'blacklist':[{'id':'actor-1','type':'actor','name':'马特·达蒙'}]}})
+  self.assertEqual(r.status_code,200);self.assertNotIn('马特·达蒙',r.json['movie']['actors'])
+ def test_bad_typed_blacklist(self):
+  for value in [None, {}, [None], [{'id':'x','type':'unknown','name':'x'}], [{'id':'x','type':'actor','name':42}]]:
+   r=self.client.post('/api/recommend',json={'mode':'random','profile':{'blacklist':value}})
+   self.assertEqual(r.status_code,400)

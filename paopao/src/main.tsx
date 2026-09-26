@@ -24,6 +24,9 @@ import { CheckinForm, Memory, MemoryCard, Wall } from './components/Memories';
 import Intro from './components/Intro';
 import Cinema, { useLandscape } from './components/Cinema';
 import { GestureCard } from './components/useCardGesture';
+import BlacklistPaperRoll from './components/BlacklistPaperRoll';
+import BottomSheet from './components/BottomSheet';
+import { blacklistId } from './lib/blacklist.js';
 import './style.css';
 
 type Movie = (typeof movies)[number] & { reason?: string; rarity?: string; score?: number; hits?: number };
@@ -534,10 +537,10 @@ function App() {
     <>
       <h3>偏爱的类型</h3>
       {chips(allTags, active.tags, toggleTag)}
-      {(['actors', 'blacklist'] as const).map((key, i) => (
+      {(['actors'] as const).map((key) => (
         <section className="profile-section" key={key}>
-          <h3>{i ? '绝对不看的黑名单' : '喜欢的演员'}</h3>
-          <p className="muted">{i ? '片名、演员、内容关键词，黑名单优先于所有偏好。' : '演员姓名精确匹配，多个名字可用逗号分隔。'}</p>
+          <h3>喜欢的演员</h3>
+          <p className="muted">演员姓名精确匹配，多个名字可用逗号分隔。</p>
           <div className="chips">
             {active[key].map((t) => (
               <button className="chip" key={t} aria-label={`移除 ${t}`} onClick={() => update({ ...active, [key]: active[key].filter((x) => x !== t) })}>
@@ -558,11 +561,15 @@ function App() {
               }
             }}
           >
-            <input name="entry" placeholder={i ? '添加不想看的内容' : '添加演员姓名'} />
+            <input name="entry" placeholder="添加演员姓名" />
             <button type="submit">添加</button>
           </form>
         </section>
       ))}
+      <BlacklistPaperRoll key={editing} items={active.blacklist} onChange={(change) => {
+        const setter = editing === 'partner' ? setPartner : setProfile;
+        setter((p) => ({ ...p, blacklist: change(p.blacklist) }));
+      }} />
       <p className="muted">修改自动保存，只保存在这台设备上。</p>
     </>
   );
@@ -1294,12 +1301,7 @@ function App() {
       )}
 
       {sheet && (
-        <div className="modal-backdrop" onClick={() => closeSheet()}>
-          <section className="sheet" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <button className="close icon-btn" aria-label="关闭" onClick={() => closeSheet()}>
-              <X size={20} />
-            </button>
-            <div className="sheet-handle" />
+        <BottomSheet onClose={() => closeSheet()}>
             {sheet === 'onboard' && (
               <div className="onboarding">
                 <span className="eyebrow">想更懂我 · {onboard} / 3</span>
@@ -1318,7 +1320,9 @@ function App() {
                     if (onboard > 1) {
                       const key = onboard === 2 ? 'actors' : 'blacklist';
                       const items = draft.split(/[,，、]/).map((x) => x.trim()).filter(Boolean);
-                      if (items.length) setProfile((p) => ({ ...p, [key]: [...new Set([...p[key], ...items])] }));
+                      if (items.length) setProfile((p) => key === 'actors'
+                        ? { ...p, actors: [...new Set([...p.actors, ...items])] }
+                        : { ...p, blacklist: [...p.blacklist, ...items.map((name) => ({ id: blacklistId(), type: allTags.includes(name) ? 'genre' : movies.some((m) => m.actors.includes(name)) ? 'actor' : 'title', name }))] });
                       setDraft('');
                     }
                     if (onboard === 3) {
@@ -1418,8 +1422,7 @@ function App() {
                 </div>
               </div>
             )}
-          </section>
-        </div>
+        </BottomSheet>
       )}
     </div>
   );
