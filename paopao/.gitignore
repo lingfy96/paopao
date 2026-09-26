@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.venv/
+*.sqlite3
+__pycache__/
+*.tsbuildinfo
+.sites-runtime/
+.vercel

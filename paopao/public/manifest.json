@@ -1,0 +1,19 @@
+{
+  "name": "泡泡选片 PAOPAO SELECT",
+  "short_name": "泡泡选片",
+  "description": "今晚的好故事，藏在下一张卡里。按住泡泡，啵一声开出今晚的电影。",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "lang": "zh-CN",
+  "background_color": "#0e0f13",
+  "theme_color": "#0e0f13",
+  "categories": ["entertainment", "lifestyle"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

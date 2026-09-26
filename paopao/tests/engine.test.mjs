@@ -1,0 +1,10 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import{choose,rank,quota,day}from'../src/engine.js';
+const movies=JSON.parse(fs.readFileSync(new URL('../src/movies.json',import.meta.url)));const base={mode:'mood',mood:'有点 emo',profile:{tags:[],actors:[],blacklist:[]},partner:{tags:[],actors:[],blacklist:[]}};
+test('100 unique real titles with complete fields',()=>{assert.equal(movies.length,100);assert.equal(new Set(movies.map(m=>m.title)).size,100);movies.forEach(m=>assert.ok(m.synopsis&&m.actors.length&&m.duration))});
+test('blacklist defeats likes and excludes actors, content and titles',()=>{let p={...base,profile:{tags:['科幻'],actors:['马特·达蒙'],blacklist:['科幻','马特·达蒙','海边的曼彻斯特']}};assert.ok(rank(movies,p).every(m=>!m.tags.includes('科幻')&&!m.actors.includes('马特·达蒙')&&m.title!=='海边的曼彻斯特'))});
+test('couple blacklist union',()=>{assert.ok(rank(movies,{...base,couple:true,partner:{tags:['爱情'],blacklist:['爱情']}}).every(m=>!m.tags.includes('爱情')))});
+test('duration, rating, brain and genre are hard constraints',()=>{let p={...base,text:'悬疑 2小时以内 别太烧脑 高分'};assert.equal(rank(movies,p).length,0);let r=rank(movies,{...base,text:'科幻 2小时以内 高分'});assert.ok(r.length);assert.ok(r.every(m=>m.duration<=120&&m.rating>=8&&m.tags.includes('科幻')))});
+test('likes increase score under same conditions',()=>{let a=rank(movies,base).find(m=>m.id===2),b=rank(movies,{...base,profile:{...base.profile,actors:['马特·达蒙']}}).find(m=>m.id===2);assert.ok(b.score>a.score)});
+test('rerolls never repeat, empty pool reports error',()=>{let a=choose(movies,base),b=choose(movies,{...base,exclude:[a.id]});assert.notEqual(a.id,b.id);assert.throws(()=>choose(movies,{...base,exclude:movies.map(m=>m.id)}))});
+test('random mode samples filtered pool',()=>{const p={...base,mode:'random',profile:{...base.profile,blacklist:['恐怖']}};assert.notEqual(choose(movies,p,()=>0).id,choose(movies,p,()=>.99).id)});
+test('quota resets by local calendar date',()=>{assert.equal(quota({date:'2000-01-01',used:5}).used,0);assert.equal(quota({date:day(),used:5}).used,5)});
