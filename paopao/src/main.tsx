@@ -18,12 +18,13 @@ import { HATCH_XP, SPECIES, feed as eggFeed, normalizeEgg, onOpen as eggOnOpen, 
 import { weeklyStats } from './lib/stats.js';
 import { dataUrlToFile, drawMoviePoster, drawShareCard, shareUrl } from './lib/canvas.js';
 import Bubble from './components/Bubble';
-import Reveal, { RevealPhase, SsrOverlay } from './components/Reveal';
+import { RevealPhase, SsrOverlay } from './components/Reveal';
 import Aquarium, { CreatureSvg, EggSvg } from './components/Aquarium';
 import { CheckinForm, Memory, MemoryCard, Wall } from './components/Memories';
 import Intro from './components/Intro';
-import Cinema, { useLandscape } from './components/Cinema';
-import { GestureCard } from './components/useCardGesture';
+import { useLandscape } from './components/Cinema';
+import MovieShowcaseResult from './components/MovieShowcaseResult';
+import { getMovieTheme, showcaseVariables, SHOWCASE_TIMING } from './lib/showcase.js';
 import BlacklistPaperRoll from './components/BlacklistPaperRoll';
 import BottomSheet from './components/BottomSheet';
 import { blacklistId } from './lib/blacklist.js';
@@ -91,6 +92,7 @@ function App() {
   const [poster, setPoster] = useState<{ url: string; title: string } | null>(null);
   const [posterBusy, setPosterBusy] = useState(false);
   const [source, setSource] = useState('本地灵感匹配');
+  const [resultError, setResultError] = useState('');
   const [checkinFor, setCheckinFor] = useState<number | undefined>();
   const [newborn, setNewborn] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState('');
@@ -270,29 +272,34 @@ function App() {
     setQ(fresh);
     if (newRound && fresh.used >= DAILY + fresh.bonus) return notify('今天的 5 盒都开完啦，明天再来');
     const base = { mode, mood, mbti, text, profile, partner, couple, exclude: round.map((x) => x.id) };
+    setResultError('');
     const picked = pick(base, newRound);
-    if (!picked) return notify('这一盒的故事都翻过啦，换个心情或画像试试');
+    if (!picked) {
+      const message = '暂时没有符合条件的新电影，试试调整心情或画像。';
+      setResultError(message);
+      return notify(message);
+    }
 
     guard.current = true;
     setBusy(true);
     const fast = reducedMotion();
-    const T = fast ? { leave: 0, bubble: 0, sil: 250, flip: 200 } : { leave: 320, bubble: 700, sil: retry ? 480 : 760, flip: 720 };
     const previous = current;
     try {
-      if (retry) {
-        setReveal({ phase: 'leaving' });
-        await sleep(T.leave);
-        setReveal({ phase: 'bubble' });
-        await sleep(T.bubble);
-        sfx.pop();
-        haptic(16);
-      } else nav('/result');
-      setReveal({ phase: 'silhouette' });
+      setReveal({ phase: retry ? 'leaving' : 'silhouette' });
+      if (!retry) nav('/result');
       const started = Date.now();
       const api = await tryApi(picked.p, picked.pool);
       const result: Movie = api ? (api.result as Movie) : picked.result;
       setSource(api ? api.source : '本地灵感匹配');
-      await sleep(Math.max(0, T.sil - (Date.now() - started)));
+      const preparation = fast ? SHOWCASE_TIMING.reduced : retry ? SHOWCASE_TIMING.pending : SHOWCASE_TIMING.prepare;
+      await sleep(Math.max(0, preparation - (Date.now() - started)));
+      // The original SSR effect hands off to the theme/card; subsequent cards stay quick.
+      if (!retry && result.rarity === 'SSR') {
+        setSsr(Date.now());
+        sfx.ssr();
+        haptic([30, 40, 30, 40, 90]);
+        await sleep(fast ? 0 : SHOWCASE_TIMING.ssrLead);
+      }
 
       const next = newRound ? [result] : [...round, result];
       setRound(next);
@@ -308,16 +315,31 @@ function App() {
       }
       setReveal({ phase: 'flip' });
       sfx.flip();
-      await sleep(T.flip);
+      await sleep(fast ? SHOWCASE_TIMING.reduced : retry ? SHOWCASE_TIMING.switch : SHOWCASE_TIMING.reveal);
       setReveal({ phase: 'done' });
-      if (result.rarity === 'SSR') {
-        setSsr(Date.now());
-        sfx.ssr();
-        haptic([30, 40, 30, 40, 90]);
-      } else if (result.rarity === 'SR') haptic(24);
+      if (result.rarity === 'SR') haptic(24);
       if (picked.loosened) notify('没有完全符合的，已为你悄悄放宽一点条件');
+    } catch {
+      setResultError('这次没能抽出新电影，请再试一次。');
+      notify('这次没能抽出新电影，请再试一次');
     } finally {
       setReveal((r) => (r.phase === 'done' ? r : { phase: 'done' }));
+      setBusy(false);
+      guard.current = false;
+    }
+  }
+
+  async function selectResult(index: number) {
+    if (guard.current || locked || index === selected || !round[index]) return;
+    guard.current = true;
+    setBusy(true);
+    setResultError('');
+    try {
+      setSelected(index);
+      setReveal({ phase: 'flip' });
+      await sleep(reducedMotion() ? SHOWCASE_TIMING.reduced : SHOWCASE_TIMING.switch);
+    } finally {
+      setReveal({ phase: 'done' });
       setBusy(false);
       guard.current = false;
     }
@@ -503,36 +525,6 @@ function App() {
     </div>
   );
 
-  const resultCard = (m: Movie) => (
-    <div className={'result-card ' + (m.rarity || 'R')}>
-      <div className="result-top">
-        <span>
-          {m.rarity} <Sparkles size={16} />
-        </span>
-        <small>{m.rarity === 'SSR' ? 'SUPER SPECIAL RARE' : m.rarity === 'SR' ? 'SPECIAL RARE' : 'PAOPAO SELECTED'}</small>
-      </div>
-      <div className="result-poster">
-        {m.id === 2 && <img className="real-poster" src={`${import.meta.env.BASE_URL}good-will-hunting.jpg`} alt="心灵捕手电影海报" />}
-        <span className="film-number">{String(m.id).padStart(3, '0')}</span>
-        {m.id !== 2 && <Film size={50} strokeWidth={1} />}
-        <h1>{m.title}</h1>
-        <span className="poster-tags">{m.tags.join(' / ')}</span>
-      </div>
-      <div className="result-meta">
-        <strong>
-          ★ {m.rating}
-          <small>片库参考分</small>
-        </strong>
-        <span>
-          {m.year ? `${m.year} · ` : ''}
-          {m.type} · {m.duration} 分钟{m.type === '剧集' ? ' / 集' : ''}
-          <br />
-          {m.tags.slice(0, 3).join(' · ')}
-        </span>
-      </div>
-    </div>
-  );
-
   const renderProfile = () => (
     <>
       <h3>偏爱的类型</h3>
@@ -577,7 +569,9 @@ function App() {
   const section = page === '/library' ? '/library' : ['/', '/mbti', '/mood', '/result', '/share'].includes(page) ? '/' : '/me';
   const phase = reveal.phase;
   const revealing = phase !== 'done';
-  const againLabel = locked ? '再来一盒' : round.length >= ROUND_MAX ? '本盒已翻完' : `再来一盒 · ${ROUND_MAX - round.length}`;
+  const againLabel = !locked && round.length >= ROUND_MAX ? '本盒已翻完' : '再来一张';
+  const showcaseActive = page === '/result' && (!!current || revealing);
+  const movieTheme = getMovieTheme(current, mode === 'mood' ? mood : '', theme);
   const lockCurrent = () => {
     setLocked(true);
     haptic([12, 40, 12]);
@@ -585,7 +579,9 @@ function App() {
   };
 
   return (
-    <div className={`app route-${page.slice(1) || 'home'} ${landscape ? 'landscape' : ''}`}>
+    <div className={`app route-${page.slice(1) || 'home'} ${landscape ? 'landscape' : ''} ${showcaseActive ? 'showcase-active' : ''}`}
+      style={showcaseActive ? showcaseVariables(movieTheme) as React.CSSProperties : undefined}>
+      {showcaseActive && <div className="showcase-background" aria-hidden />}
       <div className="weather" aria-hidden>
         <span className="w1" />
         <span className="w2" />
@@ -818,71 +814,16 @@ function App() {
             (current || revealing ? (
               <>
                 {backHeader('今晚的放映')}
-                <GestureCard
-                  enabled={!revealing && !!current}
-                  onSwipeDown={() => (!locked && round.length >= ROUND_MAX ? notify('这一盒的 3 张卡都翻开了，选一部锁定吧') : open(true))}
-                >
-                  <Reveal phase={phase} rarity={current?.rarity}>
-                    {current ? resultCard(current) : <div className="result-card placeholder" />}
-                  </Reveal>
-                </GestureCard>
-                {current && !revealing && <p className="swipe-hint" aria-hidden />}
-                {current && (
-                  <div className={`result-body ${revealing ? 'waiting' : ''}`} aria-busy={revealing}>
-                    {current.bad && <div className="warning">⚠ 烂片警告：慎入！今晚也许需要一点吐槽素材。</div>}
-                    <div className="recommendation">
-                      <span>
-                        <Sparkles size={15} /> {source}
-                      </span>
-                      <p>“{current.reason}”</p>
-                    </div>
-                    <div className="action-grid">
-                      <button className={inWatch(current.id) ? 'on' : ''} aria-pressed={inWatch(current.id)} onClick={() => toggleWatch(current)}>
-                        {inWatch(current.id) ? <Check size={20} /> : <Clock size={20} />}
-                        <span>{inWatch(current.id) ? '已加入' : '稍后再看'}</span>
-                      </button>
-                      <button className={isFav(current.id) ? 'on' : ''} aria-pressed={isFav(current.id)} onClick={() => toggleFav(current)}>
-                        <Bookmark size={20} fill={isFav(current.id) ? 'currentColor' : 'none'} />
-                        <span>{isFav(current.id) ? '已收藏' : '收藏'}</span>
-                      </button>
-                      <button onClick={() => openCheckin(current.id)}>
-                        <Ticket size={20} />
-                        <span>看完打卡</span>
-                      </button>
-                      <button className={posterBusy ? 'processing' : ''} onClick={() => makePoster('movie')}>
-                        <Share2 size={20} />
-                        <span>{posterBusy ? '生成中' : '分享卡'}</span>
-                      </button>
-                    </div>
-                    <div className="two-buttons">
-                      <button className="again" disabled={busy || (!locked && round.length >= ROUND_MAX)} onClick={() => open(true)}>
-                        <Sparkles size={18} />
-                        {againLabel}
-                      </button>
-                      <button className="primary" disabled={locked || busy} onClick={lockCurrent}>
-                        <Check size={18} />
-                        {locked ? '已锁定' : '就看这部'}
-                      </button>
-                    </div>
-                    <div className="round-label">
-                      这一盒 {round.length} / {ROUND_MAX} 张 · {locked ? '已锁定，再来一盒会开新的一盒' : round.length >= ROUND_MAX ? '从翻开的卡里选一部锁定' : '不喜欢就再来一盒'}
-                    </div>
-                    <div className="round-choices">
-                      {round.map((m, i) => (
-                        <button className={selected === i ? 'selected' : ''} key={m.id} disabled={locked && selected !== i} onClick={() => !locked && setSelected(i)}>
-                          {selected === i && <Check size={14} />} {m.title}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="synopsis">{current.synopsis}</p>
-                    <p className="muted">演员：{current.actors.join('、')}</p>
-                    <button className="menu-row" onClick={() => openSheet('watch')}>
-                      <Clapperboard size={19} />
-                      去哪里看
-                      <ChevronRight size={18} />
-                    </button>
-                  </div>
-                )}
+                <MovieShowcaseResult movie={current} phase={phase} busy={busy}
+                  mood={mode === 'mood' ? mood : ''} themeMode={theme} source={source}
+                  round={round} selected={selected} roundMax={ROUND_MAX} locked={locked}
+                  inWatch={!!current && inWatch(current.id)} favorite={!!current && isFav(current.id)}
+                  againLabel={againLabel} againDisabled={!locked && round.length >= ROUND_MAX}
+                  posterBusy={posterBusy} error={resultError}
+                  onAgain={() => open(true)} onSelect={selectResult}
+                  onWatch={() => current && toggleWatch(current)} onCheckin={() => current && openCheckin(current.id)}
+                  onFavorite={() => current && toggleFav(current)} onShare={() => makePoster('movie')}
+                  onLock={lockCurrent} onWhere={() => openSheet('watch')} />
               </>
             ) : (
               <div className="empty">
@@ -1274,24 +1215,6 @@ function App() {
         </nav>
       </main>
 
-      {landscape && page === '/result' && (current || revealing) && (
-        <Cinema
-          movie={current}
-          revealing={revealing}
-          card={
-            <Reveal phase={phase} rarity={current?.rarity}>
-              {current ? resultCard(current) : <div className="result-card placeholder" />}
-            </Reveal>
-          }
-          inWatch={!!current && inWatch(current.id)}
-          locked={locked}
-          againLabel={againLabel}
-          againDisabled={busy || (!locked && round.length >= ROUND_MAX)}
-          onAgain={() => open(true)}
-          onWatch={() => current && toggleWatch(current)}
-          onLock={lockCurrent}
-        />
-      )}
       {intro && <Intro onDone={() => setIntro(false)} />}
       <SsrOverlay stamp={ssr} />
       {toast && (
