@@ -16,7 +16,7 @@ const MOOD_KEYS = Object.keys(moods);
 
 export const DEFAULTS = Object.freeze({
   baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-  model: 'glm-4.7-flash',
+  model: 'glm-5.3-flashx',
   maxTokens: 900,
   temperature: 0.8,
   timeoutMs: 45000,

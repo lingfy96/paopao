@@ -224,7 +224,7 @@ test('the proxy forwards tokens as they arrive and finishes with done', async ()
   assert.ok(sent.url.endsWith('/chat/completions'));
   assert.equal(sent.auth, 'Bearer k');
   assert.equal(sent.body.stream, true);
-  assert.equal(sent.body.model, 'glm-4.7-flash');
+  assert.equal(sent.body.model, 'glm-5.3-flashx');
   assert.ok(sent.body.tools.every((tool) => ALLOWED_ACTIONS[tool.function.name]), 'only whitelisted tools are advertised');
   assert.deepEqual(events.filter((e) => e.type === 'delta').map((e) => e.text), ['今晚', '看这部']);
   assert.equal(events.at(-1).type, 'done');

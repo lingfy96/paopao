@@ -24,7 +24,7 @@ import Intro from './components/Intro';
 import { useLandscape } from './components/Cinema';
 import MovieShowcaseResult from './components/MovieShowcaseResult';
 import { getMovieTheme, showcaseVariables, SHOWCASE_TIMING } from './lib/showcase.js';
-import BlacklistPaperRoll from './components/BlacklistPaperRoll';
+import BlacklistTearSheet from './components/BlacklistTearSheet';
 import BottomSheet from './components/BottomSheet';
 import LibraryFilterSheet from './components/LibraryFilterSheet';
 import { blacklistId } from './lib/blacklist.js';
@@ -559,7 +559,7 @@ function App() {
           </form>
         </section>
       ))}
-      <BlacklistPaperRoll key={editing} items={active.blacklist} onChange={(change) => {
+      <BlacklistTearSheet key={editing} items={active.blacklist} onChange={(change) => {
         const setter = editing === 'partner' ? setPartner : setProfile;
         setter((p) => {
           const blacklist = change(p.blacklist);

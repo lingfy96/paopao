@@ -1,0 +1,174 @@
+/* A single archive slip drawn out of a dark slot; paper is a material inside the app theme, not a device. */
+.blacklist-roll-section, .paper-tear-layer {
+  --paper: #e3dfd6; --paper-hi: #ebe8e0; --paper-low: #d2cdc2; --paper-deep: #a9a397; --paper-fiber: #f1eee7;
+  --paper-ink: #26252a; --paper-soft: #77726a;
+  --paper-crease: rgba(84, 70, 46, .13); --paper-crease-hi: rgba(255, 255, 255, .5);
+  --paper-shadow: rgba(0, 0, 0, .5); --paper-shadow-near: rgba(0, 0, 0, .28);
+  --slot-a: rgba(0, 0, 0, .55); --slot-b: rgba(0, 0, 0, .22); --slot-lip: rgba(255, 255, 255, .05);
+  --paper-ease: cubic-bezier(.22, 1, .36, 1);
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .34 0 0 0 0 .29 0 0 0 0 .2 .16 0 0 0 -.05'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --tear-line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 6' preserveAspectRatio='none'%3E%3Cdefs%3E%3Cpath id='p' d='M0 3L9 2.2L14 3.6L23 2.6L31 3.9L38 2L47 3.1L55 2.4L61 4L70 2.8L79 3.4L86 1.9L95 3.3L104 2.5L110 3.8L119 2.9L128 3.5L135 2.1L144 3.2L152 2.6L159 4L168 2.7L177 3.3L184 2L193 3.6L202 2.8L209 3.9L218 2.4L227 3.1L240 2.7'/%3E%3C/defs%3E%3Cuse href='%23p' y='1' fill='none' stroke='%23fff' stroke-opacity='.6'/%3E%3Cuse href='%23p' fill='none' stroke='%235a4a32' stroke-opacity='.42'/%3E%3C/svg%3E");
+}
+[data-theme='light'] .blacklist-roll-section, [data-theme='light'] .paper-tear-layer {
+  --paper: #fbf9f5; --paper-hi: #fffefb; --paper-low: #f0ece4; --paper-deep: #dcd6ca; --paper-fiber: #ffffff;
+  --paper-ink: #2a2832; --paper-soft: #8b857a;
+  --paper-crease: rgba(84, 70, 46, .11); --paper-crease-hi: rgba(255, 255, 255, .9);
+  --paper-shadow: rgba(58, 36, 96, .17); --paper-shadow-near: rgba(58, 36, 96, .12);
+  --slot-a: rgba(60, 40, 100, .22); --slot-b: rgba(60, 40, 100, .07); --slot-lip: rgba(255, 255, 255, .95);
+}
+.blacklist-roll-section { margin: 30px 0 28px; }
+.paper-description { margin-bottom: 14px; }
+.tear-sheet { position: relative; width: 100%; max-width: 460px; margin: 0 auto; padding-bottom: 10px; }
+
+/* Slot: a low-contrast recess the paper is drawn from. */
+.paper-slot { position: relative; z-index: 2; height: 7px; margin: 0 2px; border-radius: 7px; background: linear-gradient(180deg, var(--slot-a) 0 50%, var(--slot-b)); box-shadow: 0 1px 0 var(--slot-lip);
+  -webkit-mask: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent); mask: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent); }
+.paper-sheet { position: relative; z-index: 1; margin: -3px 14px 0; filter: drop-shadow(0 12px 16px var(--paper-shadow)) drop-shadow(0 1px 1.5px var(--paper-shadow-near)); }
+.paper-under { position: absolute; left: 6px; right: 6px; bottom: -3px; height: 48px; background: linear-gradient(var(--paper-low), var(--paper-deep)); clip-path: polygon(0 0, 100% 0, 100% 88%, 96% 94%, 91.5% 86%, 87% 92%, 80% 89%, 76.5% 97%, 70% 91%, 63% 93%, 58.5% 86%, 52% 92%, 47% 100%, 43% 91%, 36% 88%, 31.5% 95%, 25% 90%, 19% 93%, 14.5% 87%, 9% 94%, 4% 89%, 0 93%); }
+.paper-body { position: relative; color: var(--paper-ink); background:
+    linear-gradient(180deg, rgba(20, 15, 8, .22), rgba(20, 15, 8, .06) 8px, transparent 20px),
+    linear-gradient(90deg, rgba(90, 75, 48, .07), transparent 5%, transparent 95%, rgba(90, 75, 48, .08)),
+    var(--paper-grain), linear-gradient(180deg, var(--paper-low), var(--paper) 44px, var(--paper));
+  box-shadow: inset 1px 0 rgba(255, 255, 255, .45), inset -1px 0 rgba(60, 45, 20, .06); }
+.paper-edge { position: relative; height: 11px; margin-top: -1px; }
+.paper-edge::before, .paper-edge::after { content: ''; position: absolute; inset: 0; }
+.paper-edge::before { background: var(--paper-fiber); clip-path: polygon(0 0, 100% 0, 100% 64%, 98.6% 70%, 97.1% 58%, 94.8% 76%, 92% 70%, 90.6% 86%, 88.1% 66%, 84% 62%, 81.7% 74%, 80.2% 64%, 76.5% 80%, 73% 72%, 71.8% 92%, 69.4% 74%, 64% 64%, 61.3% 72%, 59.9% 60%, 56.2% 68%, 52% 78%, 50.4% 96%, 48.3% 76%, 44% 70%, 40.2% 82%, 38.7% 70%, 35% 62%, 31.6% 70%, 29.8% 62%, 26% 76%, 22.9% 88%, 21.5% 74%, 17% 66%, 13.4% 74%, 11.9% 64%, 8% 58%, 5.7% 72%, 3.1% 64%, 1.2% 80%, 0 68%); }
+.paper-edge::after { background: var(--paper-grain), linear-gradient(90deg, var(--paper) 88%, var(--paper-low)); clip-path: polygon(0 0, 100% 0, 100% 46%, 98.6% 52%, 97.1% 44%, 94.8% 58%, 92% 55%, 90.6% 64%, 88.1% 51%, 84% 47%, 81.7% 56%, 80.2% 50%, 76.5% 62%, 73% 57%, 71.8% 70%, 69.4% 58%, 64% 49%, 61.3% 55%, 59.9% 45%, 56.2% 52%, 52% 60%, 50.4% 72%, 48.3% 59%, 44% 54%, 40.2% 63%, 38.7% 55%, 35% 46%, 31.6% 53%, 29.8% 47%, 26% 58%, 22.9% 66%, 21.5% 57%, 17% 50%, 13.4% 57%, 11.9% 49%, 8% 44%, 5.7% 55%, 3.1% 49%, 1.2% 60%, 0 52%); }
+
+/* Header is the top of the slip. */
+.paper-header { position: relative; display: flex; align-items: center; gap: 7px; width: 100%; min-height: 56px; padding: 17px clamp(16px, 5vw, 22px) 13px; color: var(--paper-ink); text-align: left; }
+.paper-header strong { font-size: 15px; font-weight: 650; letter-spacing: .16em; }
+.paper-header svg { color: var(--paper-soft); transition: transform 400ms var(--paper-ease); }
+.tear-sheet:not(.paper-expanded) .paper-header svg { transform: rotate(-90deg); }
+.paper-count { margin-left: auto; font-size: 11px; letter-spacing: .08em; color: var(--paper-soft); font-variant-numeric: tabular-nums; }
+.paper-header::after, .paper-row-face::before, .paper-more::after, .paper-add::before { content: ''; position: absolute; left: 14px; right: 14px; height: 2px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--paper-crease) 8%, var(--paper-crease) 92%, transparent) top / 100% 1px no-repeat,
+    linear-gradient(90deg, transparent, var(--paper-crease-hi) 8%, var(--paper-crease-hi) 92%, transparent) bottom / 100% 1px no-repeat; }
+.paper-header::after { bottom: 0; opacity: 0; transition: opacity 300ms; }
+.paper-expanded .paper-header::after { opacity: 1; }
+.paper-header:focus-visible, .paper-row-face:focus-visible, .paper-add:focus-visible, .paper-more:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; border-radius: 4px; }
+
+/* Expand/collapse: the slip is drawn out of / slides back into the slot. */
+.paper-reveal { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 420ms var(--paper-ease); }
+.paper-expanded .paper-reveal { grid-template-rows: 1fr; }
+.paper-clip { min-height: 0; overflow: hidden; }
+.paper-web { position: relative; transform: translateY(-14px); opacity: 0; transition: transform 420ms var(--paper-ease), opacity 260ms ease; }
+.paper-expanded .paper-web { transform: none; opacity: 1; }
+
+.paper-row-slot { position: relative; display: grid; grid-template-rows: 1fr; transition: grid-template-rows 400ms var(--paper-ease) 300ms; }
+.paper-row-slot > div { min-height: 0; overflow: hidden; }
+.paper-row { position: relative; min-width: 0; overflow: hidden; }
+.paper-row-face, .paper-scrap { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 14px clamp(16px, 5vw, 22px); text-align: left; color: var(--paper-ink); }
+.paper-row-face { position: relative; z-index: 1; touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  transition: transform 260ms var(--paper-ease), box-shadow 200ms, opacity 60ms; }
+.paper-row-face::before { bottom: 0; }
+.paper-type { flex: 0 0 26px; font-size: 11.5px; letter-spacing: .06em; color: var(--paper-soft); }
+.paper-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 15.5px; line-height: 1.45; font-weight: 560; letter-spacing: .01em; }
+.paper-row-face > svg, .paper-scrap > svg { flex-shrink: 0; color: var(--paper-soft); opacity: .65; }
+@media (hover: hover) { .paper-row-face:hover:not(:disabled) { box-shadow: inset 0 0 0 999px rgba(90, 70, 40, .03); } }
+
+/* Long press: the slip gives slightly and a tear line starts along its lower crease. */
+.paper-row-face::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -2px; height: 5px; background: var(--tear-line) center / 100% 100% no-repeat; opacity: 0; clip-path: inset(0 100% 0 0); pointer-events: none; }
+.paper-holding { transform: translateY(1px) scale(.994); box-shadow: inset 0 0 0 999px rgba(90, 70, 40, .045); transition: transform 600ms ease-out, box-shadow 600ms; }
+.paper-holding::after { animation: paper-hold 600ms linear forwards; }
+@keyframes paper-hold { 25% { opacity: .35; } to { opacity: .9; clip-path: inset(0); } }
+
+.paper-swiped { transform: translateX(-76px); background: var(--paper-grain), var(--paper); box-shadow: 8px 0 12px -8px rgba(0, 0, 0, .35); }
+.paper-swipe-delete { position: absolute; inset: 0 0 0 auto; width: 76px; visibility: hidden; background: #7c3431; color: #f6e8e3; font-size: 13px; letter-spacing: .12em; box-shadow: inset 10px 0 12px -8px rgba(0, 0, 0, .45); }
+.paper-row.is-swiped .paper-swipe-delete { visibility: visible; }
+.paper-swipe-delete:active { background: #662826; }
+
+.paper-add, .paper-more { position: relative; width: 100%; min-height: 48px; padding: 12px 14px; color: var(--paper-soft); font-size: 13px; letter-spacing: .06em; transition: box-shadow 200ms, transform 200ms; }
+.paper-add { color: var(--paper-ink); font-weight: 560; opacity: .78; }
+.paper-add::before { top: -1px; opacity: 0; }
+.paper-more { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.paper-more::after { bottom: 0; }
+.paper-add:active, .paper-more:active { box-shadow: inset 0 0 0 999px rgba(90, 70, 40, .05); transform: scale(.985); }
+.tear-sheet .paper-header:disabled, .tear-sheet .paper-row-face:disabled, .tear-sheet .paper-add:disabled, .tear-sheet .paper-more:disabled { opacity: 1; cursor: default; }
+.tear-sheet .paper-add:disabled { opacity: .78; }
+.tear-sheet .paper-row-face:active:not(:disabled):not(.paper-holding) { transform: scale(.994); }
+.tear-sheet .paper-row-face.paper-swiped:active:not(:disabled) { transform: translateX(-76px) scale(.994); }
+
+/* Empty: a short tongue of paper. */
+.paper-empty-message { display: grid; place-items: center; height: 44px; margin: 0; padding: 0 16px; font-size: 12.5px; letter-spacing: .05em; color: var(--paper-soft); text-align: center; animation: paper-ink-in 420ms var(--paper-ease) 60ms both; }
+@keyframes paper-ink-in { from { opacity: 0; transform: translateY(-3px); } }
+
+/* Delete: the torn slot closes; a faint seam remains until the data commits. */
+.tear-sheet .paper-removing { grid-template-rows: 0fr; }
+.paper-removing-last { min-height: 44px; }
+.tear-sheet .paper-removing .paper-row-face { opacity: 0; pointer-events: none; }
+.paper-removing .paper-swipe-delete { visibility: hidden; }
+.paper-removing::before, .paper-removing::after { content: ''; position: absolute; z-index: 2; left: 12px; right: 12px; height: 5px; background: var(--tear-line) center / 100% 100% no-repeat; opacity: 0; animation: paper-seam 300ms ease 180ms forwards; pointer-events: none; }
+.paper-removing::before { top: -2px; transform: scaleX(-1); }
+.paper-removing::after { bottom: -2px; }
+.paper-removing-last::before, .paper-removing-last::after { display: none; }
+@keyframes paper-seam { to { opacity: .55; } }
+
+/* Add: the slip extends by a row, then the entry is written in. */
+.paper-row-slot:has(.paper-row-new) { animation: paper-extend 340ms var(--paper-ease) both; }
+@keyframes paper-extend { from { grid-template-rows: 0fr; } to { grid-template-rows: 1fr; } }
+.paper-row-new .paper-row-face { animation: paper-arrive 320ms var(--paper-ease) 220ms both; }
+@keyframes paper-arrive { from { opacity: 0; transform: translateY(-6px); } }
+.paper-row-edited .paper-row-face { animation: paper-ink-in 360ms var(--paper-ease) both; }
+
+/* Torn scrap: press, crease, tear, detach, crumple, fall. */
+.paper-tear-layer { position: fixed; z-index: 60; pointer-events: none; }
+.paper-torn-piece { width: 100%; height: 100%; transform-origin: 55% 45%; animation: paper-scrap-fall 820ms linear forwards; }
+@keyframes paper-scrap-fall {
+  0% { transform: none; animation-timing-function: ease-out; }
+  9% { transform: translateY(1.5px) scale(.985); animation-timing-function: ease-in-out; }
+  24% { transform: translateY(1px) scale(.99); animation-timing-function: cubic-bezier(.22, 1, .36, 1); }
+  38% { transform: translate(3px, 6px) rotate(1.8deg); animation-timing-function: ease-in-out; }
+  60% { transform: translate(9px, 18px) rotate(9deg) scale(.5, .82); animation-timing-function: ease-out; }
+  76% { transform: translate(14px, 36px) rotate(20deg) scale(.22, .66); opacity: 1; animation-timing-function: cubic-bezier(.5, 0, .9, .6); }
+  100% { transform: translate(20px, 150px) rotate(42deg) scale(.13, .6); opacity: 0; }
+}
+.paper-scrap { position: relative; height: 100%; background: var(--paper-grain), linear-gradient(135deg, var(--paper-hi), var(--paper) 55%, var(--paper-low));
+  clip-path: polygon(0 0, 8% 0, 17% 0, 25% 0, 34% 0, 42% 0, 51% 0, 59% 0, 68% 0, 76% 0, 88% 0, 100% 0, 100% 100%, 91% 100%, 80% 100%, 71% 100%, 62% 100%, 53% 100%, 45% 100%, 36% 100%, 27% 100%, 18% 100%, 9% 100%, 0 100%);
+  animation: paper-scrap-tear 820ms linear forwards; }
+@keyframes paper-scrap-tear {
+  9% { clip-path: polygon(0 0, 8% 0, 17% 0, 25% 0, 34% 0, 42% 0, 51% 0, 59% 0, 68% 0, 76% 0, 88% 0, 100% 0, 100% 100%, 91% 100%, 80% 100%, 71% 100%, 62% 100%, 53% 100%, 45% 100%, 36% 100%, 27% 100%, 18% 100%, 9% 100%, 0 100%); }
+  30%, 40% { clip-path: polygon(0 1.5%, 8% 0, 17% 3%, 25% 1%, 34% 4.5%, 42% 2%, 51% .5%, 59% 3.5%, 68% 1%, 76% 4%, 88% 0, 100% 2%, 100% 98%, 91% 100%, 80% 96%, 71% 99%, 62% 95.5%, 53% 98.5%, 45% 100%, 36% 96.5%, 27% 99%, 18% 95%, 9% 98%, 0 100%); }
+  60% { clip-path: polygon(4% 14%, 9% 6%, 19% 4%, 27% 9%, 37% 3%, 45% 7%, 54% 2%, 62% 7%, 71% 3%, 80% 10%, 90% 6%, 98% 18%, 99% 82%, 91% 96%, 80% 92%, 71% 99%, 62% 93%, 53% 98%, 45% 92%, 36% 99%, 27% 93%, 18% 97%, 8% 90%, 1% 78%); }
+  76%, 100% { clip-path: polygon(10% 30%, 14% 12%, 22% 6%, 30% 14%, 40% 2%, 49% 10%, 57% 0, 66% 9%, 74% 4%, 84% 16%, 92% 10%, 100% 34%, 96% 70%, 90% 92%, 79% 86%, 70% 100%, 61% 90%, 52% 97%, 44% 88%, 35% 100%, 26% 90%, 17% 95%, 8% 80%, 0 60%); }
+}
+.paper-scrap::before { content: ''; position: absolute; left: 6px; right: 6px; bottom: -1px; height: 5px; background: var(--tear-line) center / 100% 100% no-repeat; opacity: 0; animation: paper-scrap-crease 820ms linear forwards; }
+@keyframes paper-scrap-crease { 9% { opacity: 0; } 20%, 34% { opacity: 1; } 44%, 100% { opacity: 0; } }
+.paper-scrap::after { content: ''; position: absolute; inset: 0; opacity: 0; animation: paper-scrap-crumple 820ms linear forwards;
+  background: linear-gradient(112deg, transparent 28%, rgba(60, 45, 25, .2) 30%, transparent 33%, rgba(255, 255, 255, .5) 35%, transparent 39%),
+    linear-gradient(64deg, transparent 48%, rgba(60, 45, 25, .18) 50%, transparent 54%),
+    linear-gradient(158deg, transparent 18%, rgba(255, 255, 255, .45) 21%, transparent 25%, rgba(60, 45, 25, .16) 60%, transparent 64%),
+    radial-gradient(ellipse at 42% 38%, transparent 25%, rgba(60, 45, 25, .32)); }
+@keyframes paper-scrap-crumple { 42% { opacity: 0; } 72%, 100% { opacity: 1; } }
+.paper-scrap > * { animation: paper-scrap-ink 820ms linear forwards; }
+@keyframes paper-scrap-ink { 48% { opacity: 1; } 72% { opacity: .2; } 88%, 100% { opacity: 0; } }
+
+.paper-tear-reduced .paper-torn-piece { animation: paper-short-fade 180ms ease-out forwards !important; }
+.paper-tear-reduced .paper-scrap, .paper-tear-reduced .paper-scrap > *, .paper-tear-reduced .paper-scrap::before, .paper-tear-reduced .paper-scrap::after { animation: none !important; }
+@keyframes paper-short-fade { to { opacity: 0; transform: scale(.96); } }
+@media (prefers-reduced-motion: reduce) {
+  .tear-sheet *, .tear-sheet *::before, .tear-sheet *::after { transition-delay: 0ms !important; }
+  .paper-row-slot:has(.paper-row-new), .paper-removing::before, .paper-removing::after { animation: none !important; }
+  .paper-holding::after { animation-duration: 600ms !important; }
+  .paper-torn-piece { animation: paper-short-fade 180ms ease-out forwards !important; }
+  .paper-scrap, .paper-scrap > *, .paper-scrap::before, .paper-scrap::after { animation: none !important; }
+}
+
+.paper-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Add / edit / menu sheet */
+.blacklist-sheet h2 { overflow-wrap: anywhere; padding-right: 25px; }
+.blacklist-sheet fieldset { margin: 24px 0 20px; padding: 0; border: 0; }
+.blacklist-sheet legend, .blacklist-name { color: var(--text-2); font-size: 13px; }
+.blacklist-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 4px; margin-top: 9px; border-radius: 15px; background: var(--surface-2); }
+.blacklist-types label { position: relative; cursor: pointer; }
+.blacklist-types input { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; min-height: 0; margin: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+.blacklist-types span { display: grid; place-items: center; min-height: 43px; border: 1px solid transparent; border-radius: 11px; transition: background 200ms, transform 200ms; }
+.blacklist-types input:checked + span { background: var(--surface); color: var(--accent); border-color: var(--accent); }
+.blacklist-types input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.blacklist-types label:active span { transform: scale(.96); }
+.blacklist-name { display: block; }
+.blacklist-name input { margin-top: 9px; }
+.blacklist-sheet .primary { margin-top: 24px; }
+.blacklist-sheet .paper-danger, .blacklist-sheet .paper-danger svg { color: #e58985; }
+[data-theme='light'] .blacklist-sheet .paper-danger, [data-theme='light'] .blacklist-sheet .paper-danger svg { color: #ab3d3d; }

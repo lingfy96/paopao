@@ -60,11 +60,11 @@ try {
   await page.goto(base); await waitIntro();
   check('empty state and original profile controls render', await page.getByText('没有不喜欢的，今天心情不错').isVisible() && await page.getByText('喜欢的演员', { exact: true }).isVisible());
   check('no audio starts on page load', await page.evaluate(() => window.__audioStarts === 0));
-  await page.locator('.paper-cylinder').click();
-  check('collapse aria state', await page.locator('.paper-cylinder').getAttribute('aria-expanded') === 'false');
+  await page.locator('.paper-header').click();
+  check('collapse aria state', await page.locator('.paper-header').getAttribute('aria-expanded') === 'false');
   await page.waitForTimeout(550);
   check('collapsed paper is not focusable', await page.locator('.paper-reveal').evaluate((e) => e.inert && e.getBoundingClientRect().height < 1));
-  await page.locator('.paper-cylinder').click();
+  await page.locator('.paper-header').click();
   await page.locator('.paper-add').click();
   check('empty add is disabled', await page.getByRole('dialog').getByRole('button', { name: '添加', exact: true }).isDisabled());
   await page.getByRole('radio', { name: '片名', exact: true }).check();
@@ -80,7 +80,10 @@ try {
   await page.getByRole('button', { name: '保存', exact: true }).click(); await closeWait(); await reload();
   check('edited type and name persist', (await data())[0].name === '大鱼' && (await data())[0].type === 'title');
   await rows().first().click(); await page.getByRole('button', { name: '删除 大鱼', exact: true }).click();
-  check('delete keeps data during animation and locks controls', (await data()).length === 3 && await page.locator('.paper-cylinder').isDisabled());
+  check('delete keeps data during animation and locks controls', (await data()).length === 3 && await page.locator('.paper-header').isDisabled());
+  check('tear runs the crumple sequence, not a plain fade', await page.locator('.paper-scrap').evaluate((e) => getComputedStyle(e).animationName === 'paper-scrap-tear'));
+  await page.waitForTimeout(180); await page.screenshot({ path: path.join(out, 'tear-1.png') });
+  await page.waitForTimeout(160); await page.screenshot({ path: path.join(out, 'tear-2.png') });
   await page.locator('.paper-tear-layer').waitFor({ state: 'detached' }); await page.waitForTimeout(100);
   check('menu delete commits after animation', (await data()).length === 2);
   check('tear uses synthesized audio', await page.evaluate(() => window.__audioStarts > 0));
@@ -92,7 +95,7 @@ try {
   await page.getByRole('button', { name: '删除 小时代', exact: true }).click();
   await page.locator('.paper-tear-layer').waitFor({ state: 'detached' });
   await page.waitForTimeout(750);
-  check('last deletion returns clean empty roll', (await data()).length === 0 && await page.getByRole('button', { name: '＋ 添加第一条', exact: true }).isVisible());
+  check('last deletion returns clean empty tongue', (await data()).length === 0 && await page.getByRole('button', { name: '＋ 添加第一条', exact: true }).isVisible());
   await reload(); check('deletion survives reload', (await data()).length === 0);
   const many = Array.from({ length: 12 }, (_, i) => entry(`item-${i}`, ['actor', 'genre', 'title'][i % 3], ['周杰伦', '恐怖', '小时代'][i % 3] + i));
   await seed(many);
@@ -114,25 +117,30 @@ try {
     await page.evaluate((theme) => localStorage.setItem('theme', JSON.stringify(theme)), theme); await reload();
     for (const width of [320, 375, 390, 430]) {
       await page.setViewportSize({ width, height: 844 });
-      await page.locator('.paper-roll').scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
+      await page.locator('.tear-sheet').scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
       check(`${theme} ${width}px: no horizontal overflow`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       check(`${theme} ${width}px: add button is accessible`, await page.locator('.paper-add').isVisible());
       await page.screenshot({ path: path.join(out, `${theme}-${width}.png`) });
     }
   }
   await page.setViewportSize({ width: 1280, height: 900 });
-  check('desktop roll width is constrained', (await page.locator('.paper-roll').boundingBox()).width <= 460);
+  check('desktop sheet width is constrained', (await page.locator('.tear-sheet').boundingBox()).width <= 460);
   await page.screenshot({ path: path.join(out, 'desktop.png') });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.evaluate(() => { window.__tearAnim = null; new MutationObserver((_, o) => {
+    const scrap = document.querySelector('.paper-scrap');
+    if (scrap) { window.__tearAnim = [getComputedStyle(scrap).animationName, getComputedStyle(scrap.parentElement).animationName]; o.disconnect(); }
+  }).observe(document.body, { childList: true }); });
   await touch(rows().first(), [], 650); await page.waitForTimeout(350);
-  check('reduced motion deletes without particles', (await data()).length === 2 && await page.locator('.paper-confetti').count() === 0 && await page.locator('.paper-tear-layer').count() === 0);
+  check('reduced motion replaces crumple with a short fade', JSON.stringify(await page.evaluate(() => window.__tearAnim)) === '["none","paper-short-fade"]');
+  check('reduced motion still deletes', (await data()).length === 2 && await page.locator('.paper-tear-layer').count() === 0);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await rows().first().click(); await page.getByRole('button', { name: '删除 周杰伦', exact: true }).click();
   // Cancel CSS animations: timeout must still commit and unlock.
   await page.locator('.paper-torn-piece').evaluate((e) => e.style.animation = 'none');
   await page.waitForTimeout(1500);
-  check('animation failure timeout completes deletion', (await data()).length === 1 && !await page.locator('.paper-cylinder').isDisabled());
+  check('animation failure timeout completes deletion', (await data()).length === 1 && !await page.locator('.paper-header').isDisabled());
   await page.locator('.paper-add').click();
   await page.getByRole('button', { name: '关闭', exact: true }).focus(); await page.keyboard.press('Shift+Tab');
   check('sheet traps keyboard focus', await page.getByRole('dialog').evaluate((e) => e.contains(document.activeElement)));

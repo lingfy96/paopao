@@ -1,0 +1,8 @@
+# 泡泡选片 开发规则
+1. 每次完成代码改动，并通过 build / 测试验证后，
+   必须自动执行：git add -A && git commit -m "<有意义的提交信息>" && git push origin main
+2. 推送前检查 .gitignore：必须排除 node_modules/、.env、
+   screenshots/、以及任何包含 API Key 的文件
+3. 推送后确认 GitHub Actions 部署成功
+4. 如果推送报错，停下来把错误截图/文字告诉我，不要静默跳过
+5. 只提交与当前任务相关的改动

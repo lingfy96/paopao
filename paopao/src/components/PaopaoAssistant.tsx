@@ -239,10 +239,9 @@ export default function PaopaoAssistant({ snapshot, hidden, accent, moods, movie
       machine.fire('happy', Date.now());
       say('checkin:success');
     },
-    'blacklist:tear': () => {
-      machine.fire('surprised', Date.now());
-      say('blacklist:tear');
-    },
+    'blacklist:added': () => machine.fire('happy', Date.now()),
+    'blacklist:tear': () => machine.fire('surprised', Date.now()),
+    'blacklist:empty': () => machine.fire('lookAtCard', Date.now()),
   }), [machine, say]);
 
   useEffect(() => {
