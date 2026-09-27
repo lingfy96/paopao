@@ -46,3 +46,21 @@ resources:
               - DELETE
               - HEAD
               - OPTIONS
+  domain:
+    component: fc3-domain
+    props:
+      region: ${vars.region}
+      domainName: auto
+      protocol: HTTP
+      routeConfig:
+        routes:
+          - path: /*
+            functionName: paopao-web
+            qualifier: LATEST
+            methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - HEAD
+              - OPTIONS

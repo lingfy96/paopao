@@ -57,7 +57,8 @@ function safeFile(urlPath) {
 function sendFile(res, file) {
   const type = MIME[extname(file).toLowerCase()] || 'application/octet-stream';
   const cache = extname(file) === '.html' || file.endsWith('sw.js') ? 'no-cache' : 'public, max-age=31536000, immutable';
-  res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cache });
+  // FC HTTP trigger otherwise adds Content-Disposition: attachment and the browser downloads HTML.
+  res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cache, 'Content-Disposition': 'inline' });
   createReadStream(file).pipe(res);
 }
 
@@ -134,7 +135,7 @@ async function chat(req, res) {
 function staticOrSpa(req, res) {
   const url = (req.url || '/').split('?')[0];
   if (url === '/api/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': 'inline' });
     res.end(JSON.stringify({ ok: true, chat: Boolean(process.env.ZHIPU_API_KEY) }));
     return;
   }
