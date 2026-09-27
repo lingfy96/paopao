@@ -1,17 +1,17 @@
 /* A single archive slip drawn out of a dark slot; paper is a material inside the app theme, not a device. */
 .blacklist-roll-section, .paper-tear-layer {
-  --paper: #e3dfd6; --paper-hi: #ebe8e0; --paper-low: #d2cdc2; --paper-deep: #a9a397; --paper-fiber: #f1eee7;
-  --paper-ink: #26252a; --paper-soft: #77726a;
+  --paper: #eeeae3; --paper-hi: #f6f3ed; --paper-low: #e2ddd4; --paper-deep: #c7c1b6; --paper-fiber: #f5f2ec;
+  --paper-ink: #26252a; --paper-soft: #706b63;
   --paper-crease: rgba(84, 70, 46, .13); --paper-crease-hi: rgba(255, 255, 255, .5);
-  --paper-shadow: rgba(0, 0, 0, .5); --paper-shadow-near: rgba(0, 0, 0, .28);
+  --paper-shadow: rgba(0, 0, 0, .24); --paper-shadow-near: rgba(0, 0, 0, .18);
   --slot-a: rgba(0, 0, 0, .55); --slot-b: rgba(0, 0, 0, .22); --slot-lip: rgba(255, 255, 255, .05);
   --paper-ease: cubic-bezier(.22, 1, .36, 1);
-  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .34 0 0 0 0 .29 0 0 0 0 .2 .16 0 0 0 -.05'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .34 0 0 0 0 .29 0 0 0 0 .2 .07 0 0 0 -.02'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --tear-line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 6' preserveAspectRatio='none'%3E%3Cdefs%3E%3Cpath id='p' d='M0 3L9 2.2L14 3.6L23 2.6L31 3.9L38 2L47 3.1L55 2.4L61 4L70 2.8L79 3.4L86 1.9L95 3.3L104 2.5L110 3.8L119 2.9L128 3.5L135 2.1L144 3.2L152 2.6L159 4L168 2.7L177 3.3L184 2L193 3.6L202 2.8L209 3.9L218 2.4L227 3.1L240 2.7'/%3E%3C/defs%3E%3Cuse href='%23p' y='1' fill='none' stroke='%23fff' stroke-opacity='.6'/%3E%3Cuse href='%23p' fill='none' stroke='%235a4a32' stroke-opacity='.42'/%3E%3C/svg%3E");
 }
 [data-theme='light'] .blacklist-roll-section, [data-theme='light'] .paper-tear-layer {
   --paper: #fbf9f5; --paper-hi: #fffefb; --paper-low: #f0ece4; --paper-deep: #dcd6ca; --paper-fiber: #ffffff;
-  --paper-ink: #2a2832; --paper-soft: #8b857a;
+  --paper-ink: #2a2832; --paper-soft: #756f66;
   --paper-crease: rgba(84, 70, 46, .11); --paper-crease-hi: rgba(255, 255, 255, .9);
   --paper-shadow: rgba(58, 36, 96, .17); --paper-shadow-near: rgba(58, 36, 96, .12);
   --slot-a: rgba(60, 40, 100, .22); --slot-b: rgba(60, 40, 100, .07); --slot-lip: rgba(255, 255, 255, .95);
@@ -21,16 +21,16 @@
 .tear-sheet { position: relative; width: 100%; max-width: 460px; margin: 0 auto; padding-bottom: 10px; }
 
 /* Slot: a low-contrast recess the paper is drawn from. */
-.paper-slot { position: relative; z-index: 2; height: 7px; margin: 0 2px; border-radius: 7px; background: linear-gradient(180deg, var(--slot-a) 0 50%, var(--slot-b)); box-shadow: 0 1px 0 var(--slot-lip);
+.paper-slot { position: relative; z-index: 2; height: 4px; margin: 0 4px; border-radius: 4px; background: linear-gradient(180deg, var(--slot-a) 0 50%, var(--slot-b)); box-shadow: 0 1px 0 var(--slot-lip);
   -webkit-mask: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent); mask: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent); }
-.paper-sheet { position: relative; z-index: 1; margin: -3px 14px 0; filter: drop-shadow(0 12px 16px var(--paper-shadow)) drop-shadow(0 1px 1.5px var(--paper-shadow-near)); }
+.paper-sheet { position: relative; z-index: 1; margin: -1px 10px 0; filter: drop-shadow(0 7px 10px var(--paper-shadow)) drop-shadow(0 1px 1.5px var(--paper-shadow-near)); }
 .paper-under { position: absolute; left: 6px; right: 6px; bottom: -3px; height: 48px; background: linear-gradient(var(--paper-low), var(--paper-deep)); clip-path: polygon(0 0, 100% 0, 100% 88%, 96% 94%, 91.5% 86%, 87% 92%, 80% 89%, 76.5% 97%, 70% 91%, 63% 93%, 58.5% 86%, 52% 92%, 47% 100%, 43% 91%, 36% 88%, 31.5% 95%, 25% 90%, 19% 93%, 14.5% 87%, 9% 94%, 4% 89%, 0 93%); }
 .paper-body { position: relative; color: var(--paper-ink); background:
-    linear-gradient(180deg, rgba(20, 15, 8, .22), rgba(20, 15, 8, .06) 8px, transparent 20px),
+    linear-gradient(180deg, rgba(20, 15, 8, .12), rgba(20, 15, 8, .035) 6px, transparent 15px),
     linear-gradient(90deg, rgba(90, 75, 48, .07), transparent 5%, transparent 95%, rgba(90, 75, 48, .08)),
     var(--paper-grain), linear-gradient(180deg, var(--paper-low), var(--paper) 44px, var(--paper));
   box-shadow: inset 1px 0 rgba(255, 255, 255, .45), inset -1px 0 rgba(60, 45, 20, .06); }
-.paper-edge { position: relative; height: 11px; margin-top: -1px; }
+.paper-edge { position: relative; height: 7px; margin-top: -1px; }
 .paper-edge::before, .paper-edge::after { content: ''; position: absolute; inset: 0; }
 .paper-edge::before { background: var(--paper-fiber); clip-path: polygon(0 0, 100% 0, 100% 64%, 98.6% 70%, 97.1% 58%, 94.8% 76%, 92% 70%, 90.6% 86%, 88.1% 66%, 84% 62%, 81.7% 74%, 80.2% 64%, 76.5% 80%, 73% 72%, 71.8% 92%, 69.4% 74%, 64% 64%, 61.3% 72%, 59.9% 60%, 56.2% 68%, 52% 78%, 50.4% 96%, 48.3% 76%, 44% 70%, 40.2% 82%, 38.7% 70%, 35% 62%, 31.6% 70%, 29.8% 62%, 26% 76%, 22.9% 88%, 21.5% 74%, 17% 66%, 13.4% 74%, 11.9% 64%, 8% 58%, 5.7% 72%, 3.1% 64%, 1.2% 80%, 0 68%); }
 .paper-edge::after { background: var(--paper-grain), linear-gradient(90deg, var(--paper) 88%, var(--paper-low)); clip-path: polygon(0 0, 100% 0, 100% 46%, 98.6% 52%, 97.1% 44%, 94.8% 58%, 92% 55%, 90.6% 64%, 88.1% 51%, 84% 47%, 81.7% 56%, 80.2% 50%, 76.5% 62%, 73% 57%, 71.8% 70%, 69.4% 58%, 64% 49%, 61.3% 55%, 59.9% 45%, 56.2% 52%, 52% 60%, 50.4% 72%, 48.3% 59%, 44% 54%, 40.2% 63%, 38.7% 55%, 35% 46%, 31.6% 53%, 29.8% 47%, 26% 58%, 22.9% 66%, 21.5% 57%, 17% 50%, 13.4% 57%, 11.9% 49%, 8% 44%, 5.7% 55%, 3.1% 49%, 1.2% 60%, 0 52%); }
@@ -38,9 +38,10 @@
 /* Header is the top of the slip. */
 .paper-header { position: relative; display: flex; align-items: center; gap: 7px; width: 100%; min-height: 56px; padding: 17px clamp(16px, 5vw, 22px) 13px; color: var(--paper-ink); text-align: left; }
 .paper-header strong { font-size: 15px; font-weight: 650; letter-spacing: .16em; }
-.paper-header svg { color: var(--paper-soft); transition: transform 400ms var(--paper-ease); }
+.paper-header strong { margin-right: auto; }
+.paper-header svg { flex-shrink: 0; color: var(--paper-soft); transition: transform 400ms var(--paper-ease); }
 .tear-sheet:not(.paper-expanded) .paper-header svg { transform: rotate(-90deg); }
-.paper-count { margin-left: auto; font-size: 11px; letter-spacing: .08em; color: var(--paper-soft); font-variant-numeric: tabular-nums; }
+.paper-count { margin-left: 0; margin-right: 5px; font-size: 11px; letter-spacing: .08em; color: var(--paper-soft); font-variant-numeric: tabular-nums; }
 .paper-header::after, .paper-row-face::before, .paper-more::after, .paper-add::before { content: ''; position: absolute; left: 14px; right: 14px; height: 2px; pointer-events: none;
   background: linear-gradient(90deg, transparent, var(--paper-crease) 8%, var(--paper-crease) 92%, transparent) top / 100% 1px no-repeat,
     linear-gradient(90deg, transparent, var(--paper-crease-hi) 8%, var(--paper-crease-hi) 92%, transparent) bottom / 100% 1px no-repeat; }
@@ -89,13 +90,18 @@
 .tear-sheet .paper-row-face:active:not(:disabled):not(.paper-holding) { transform: scale(.994); }
 .tear-sheet .paper-row-face.paper-swiped:active:not(:disabled) { transform: translateX(-76px) scale(.994); }
 
+/* Last deletion finishes before the slip retracts; ink appears after the retraction. */
+.paper-empty-slot { height: 44px; overflow: hidden; }
+.paper-empty-returning .paper-empty-slot { animation: paper-empty-retract 420ms var(--paper-ease) both; }
+.paper-empty-returning .paper-empty-message { animation: paper-ink-in 240ms var(--paper-ease) 340ms both; }
+@keyframes paper-empty-retract { from { height: var(--empty-start); } to { height: 44px; } }
 /* Empty: a short tongue of paper. */
 .paper-empty-message { display: grid; place-items: center; height: 44px; margin: 0; padding: 0 16px; font-size: 12.5px; letter-spacing: .05em; color: var(--paper-soft); text-align: center; animation: paper-ink-in 420ms var(--paper-ease) 60ms both; }
 @keyframes paper-ink-in { from { opacity: 0; transform: translateY(-3px); } }
 
 /* Delete: the torn slot closes; a faint seam remains until the data commits. */
 .tear-sheet .paper-removing { grid-template-rows: 0fr; }
-.paper-removing-last { min-height: 44px; }
+.tear-sheet .paper-removing-last { grid-template-rows: 1fr; }
 .tear-sheet .paper-removing .paper-row-face { opacity: 0; pointer-events: none; }
 .paper-removing .paper-swipe-delete { visibility: hidden; }
 .paper-removing::before, .paper-removing::after { content: ''; position: absolute; z-index: 2; left: 12px; right: 12px; height: 5px; background: var(--tear-line) center / 100% 100% no-repeat; opacity: 0; animation: paper-seam 300ms ease 180ms forwards; pointer-events: none; }
@@ -107,7 +113,7 @@
 /* Add: the slip extends by a row, then the entry is written in. */
 .paper-row-slot:has(.paper-row-new) { animation: paper-extend 340ms var(--paper-ease) both; }
 @keyframes paper-extend { from { grid-template-rows: 0fr; } to { grid-template-rows: 1fr; } }
-.paper-row-new .paper-row-face { animation: paper-arrive 320ms var(--paper-ease) 220ms both; }
+.paper-row-new .paper-row-face { animation: paper-arrive 320ms var(--paper-ease) 320ms both; }
 @keyframes paper-arrive { from { opacity: 0; transform: translateY(-6px); } }
 .paper-row-edited .paper-row-face { animation: paper-ink-in 360ms var(--paper-ease) both; }
 
@@ -148,6 +154,9 @@
 @keyframes paper-short-fade { to { opacity: 0; transform: scale(.96); } }
 @media (prefers-reduced-motion: reduce) {
   .tear-sheet *, .tear-sheet *::before, .tear-sheet *::after { transition-delay: 0ms !important; }
+  .paper-empty-returning .paper-empty-slot { animation-duration: 120ms !important; }
+  .paper-empty-returning .paper-empty-message { animation-delay: 0ms !important; }
+  .paper-web { transform: none; }
   .paper-row-slot:has(.paper-row-new), .paper-removing::before, .paper-removing::after { animation: none !important; }
   .paper-holding::after { animation-duration: 600ms !important; }
   .paper-torn-piece { animation: paper-short-fade 180ms ease-out forwards !important; }

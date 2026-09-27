@@ -563,7 +563,6 @@ function App() {
         const setter = editing === 'partner' ? setPartner : setProfile;
         setter((p) => {
           const blacklist = change(p.blacklist);
-          if (blacklist.length < p.blacklist.length) assistantEmit('blacklist:tear', { left: blacklist.length });
           return { ...p, blacklist };
         });
       }} />

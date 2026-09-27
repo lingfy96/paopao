@@ -86,15 +86,16 @@ export default function BlacklistTearSheet({ items, onChange }: { items: Blackli
   const [tear, setTear] = useState<Tear | null>(null);
   const [fresh, setFresh] = useState<Fresh>(null);
   const [announcement, setAnnouncement] = useState('');
+  const [emptyFrom, setEmptyFrom] = useState(0);
   const root = useRef<HTMLElement>(null);
   const lock = useRef<Tear | null>(null);
   const fallback = useRef(0);
   const freshTimer = useRef(0);
   const emptyTimer = useRef(0);
+  const settleTimer = useRef(0);
   const pushed = useRef(false);
   const latest = useRef(onChange);
   latest.current = onChange;
-  const count = useRef(items.length);
   const paperId = useId();
   const disabled = !!tear;
 
@@ -115,18 +116,16 @@ export default function BlacklistTearSheet({ items, onChange }: { items: Blackli
     window.addEventListener('popstate', back);
     return () => {
       window.removeEventListener('popstate', back);
-      clearTimeout(fallback.current); clearTimeout(freshTimer.current); clearTimeout(emptyTimer.current);
+      clearTimeout(fallback.current); clearTimeout(freshTimer.current); clearTimeout(emptyTimer.current); clearTimeout(settleTimer.current);
       // Navigating away mid-animation still commits the user's explicit deletion.
       const pending = lock.current;
       if (pending) { lock.current = null; latest.current((list) => list.filter((x) => x.id !== pending.item.id)); }
     };
   }, []);
   useEffect(() => {
-    if (count.current > 0 && items.length === 0) {
-      clearTimeout(emptyTimer.current);
-      emptyTimer.current = window.setTimeout(() => assistantEmit('blacklist:empty'), 420);
-    }
-    count.current = items.length;
+    clearTimeout(emptyTimer.current);
+    if (items.length === 0) emptyTimer.current = window.setTimeout(() => assistantEmit('blacklist:empty'), 560);
+    return () => clearTimeout(emptyTimer.current);
   }, [items.length]);
   useEffect(() => {
     if (!tear && announcement.startsWith('已删除') &&
@@ -139,6 +138,11 @@ export default function BlacklistTearSheet({ items, onChange }: { items: Blackli
     if (!pending) return;
     lock.current = null;
     clearTimeout(fallback.current);
+    if (pending.last) {
+      setEmptyFrom(pending.rect.height);
+      clearTimeout(settleTimer.current);
+      settleTimer.current = window.setTimeout(() => setEmptyFrom(0), pending.reduced ? 180 : 650);
+    }
     latest.current((list) => list.filter((x) => x.id !== pending.item.id));
     setTear(null);
     setAnnouncement(`已删除 ${pending.item.name}`);
@@ -150,6 +154,7 @@ export default function BlacklistTearSheet({ items, onChange }: { items: Blackli
     const pending = { item, rect: row.getBoundingClientRect(), reduced: reducedMotion(), last: items.length === 1 };
     lock.current = pending; setTear(pending);
     if (sheet) closeSheet();
+    assistantEmit('blacklist:tear', { left: items.length - 1 });
     haptic([12, 25, 10]); sfx.tear();
     fallback.current = window.setTimeout(finishDelete, pending.reduced ? 240 : 1400);
   }
@@ -157,6 +162,7 @@ export default function BlacklistTearSheet({ items, onChange }: { items: Blackli
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed || lock.current) return;
+    clearTimeout(settleTimer.current); setEmptyFrom(0);
     const adding = sheet !== 'edit';
     const item = { id: !adding && selected ? selected.id : blacklistId(), type, name: trimmed };
     if (!adding) latest.current((list) => list.map((x) => x.id === item.id ? item : x));
@@ -173,19 +179,20 @@ export default function BlacklistTearSheet({ items, onChange }: { items: Blackli
 
   return <section ref={root} className="blacklist-roll-section" aria-label="黑名单">
     <p className="muted paper-description">黑名单优先于所有偏好。</p>
-    <div className={`tear-sheet ${expanded ? 'paper-expanded' : ''} ${items.length ? '' : 'paper-empty'}`}>
+    <div className={`tear-sheet ${expanded ? 'paper-expanded' : ''} ${items.length ? '' : 'paper-empty'} ${emptyFrom ? 'paper-empty-returning' : ''}`} style={{ '--empty-start': `${emptyFrom}px` } as React.CSSProperties}>
       <div className="paper-slot" aria-hidden="true" />
       <div className="paper-sheet">
         <div className="paper-under" aria-hidden="true" />
         <div className="paper-body">
           <button disabled={disabled} className="paper-header" aria-label={expanded ? '收起黑名单' : '展开黑名单'} aria-expanded={expanded} aria-controls={paperId}
             onClick={() => setExpanded(!expanded)}>
-            <strong>黑名单</strong><ChevronDown size={16} strokeWidth={2.2} aria-hidden="true" />
+            <strong>黑名单</strong>
             {items.length > 0 && <span className="paper-count" aria-hidden="true">{items.length} 条</span>}
+            <ChevronDown size={16} strokeWidth={2.2} aria-hidden="true" />
           </button>
           <div className="paper-reveal" id={paperId} inert={!expanded} aria-hidden={!expanded}>
             <div className="paper-clip"><div className="paper-web">
-              {items.length === 0 ? <p className="paper-empty-message">没有不喜欢的，今天心情不错</p> :
+              {items.length === 0 ? <div className="paper-empty-slot"><p className="paper-empty-message">没有不喜欢的，今天心情不错</p></div> :
                 items.slice(0, visibleCount).map((item) => <div key={item.id} data-entry-id={item.id}
                   className={`paper-row-slot ${tear?.item.id === item.id ? `paper-removing ${tear.last ? 'paper-removing-last' : ''}` : ''}`}>
                   <div><PaperRow item={item} disabled={disabled} fresh={fresh?.id === item.id ? fresh : null} onMenu={() => showSheet('menu', item)} onDelete={(element) => deleteItem(item, element)} /></div>

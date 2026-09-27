@@ -3,11 +3,10 @@ import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const out = process.env.OUT || path.join(os.tmpdir(), 'paopao-blacklist-qa');
+const out = process.env.OUT || path.resolve(root, '../qa-artifacts/blacklist');
 fs.mkdirSync(out, { recursive: true });
 const server = await createServer({ root, server: { host: '127.0.0.1', port: 5178, strictPort: true } });
 await server.listen();
@@ -59,12 +58,15 @@ async function touch(selector, moves = [], hold = 0) {
 try {
   await page.goto(base); await waitIntro();
   check('empty state and original profile controls render', await page.getByText('没有不喜欢的，今天心情不错').isVisible() && await page.getByText('喜欢的演员', { exact: true }).isVisible());
+  check('no roll or hardware remains', await page.locator('.paper-hanger, .paper-spindle, .paper-cylinder, .paper-roll').count() === 0);
   check('no audio starts on page load', await page.evaluate(() => window.__audioStarts === 0));
   await page.locator('.paper-header').click();
   check('collapse aria state', await page.locator('.paper-header').getAttribute('aria-expanded') === 'false');
   await page.waitForTimeout(550);
   check('collapsed paper is not focusable', await page.locator('.paper-reveal').evaluate((e) => e.inert && e.getBoundingClientRect().height < 1));
   await page.locator('.paper-header').click();
+  await page.waitForTimeout(450);
+  check('expanded header arrow faces down', await page.locator('.paper-header svg').evaluate((e) => getComputedStyle(e).transform === 'none' || getComputedStyle(e).transform === 'matrix(1, 0, 0, 1, 0, 0)'));
   await page.locator('.paper-add').click();
   check('empty add is disabled', await page.getByRole('dialog').getByRole('button', { name: '添加', exact: true }).isDisabled());
   await page.getByRole('radio', { name: '片名', exact: true }).check();
@@ -75,11 +77,20 @@ try {
   await add('演员', '周杰伦'); await add('类型', '恐怖'); await add('片名', '小时代');
   check('three typed entries added', (await data()).map((x) => x.type).join(',') === 'actor,genre,title');
   await reload(); check('add survives reload', await rows().count() === 3);
+  await page.locator('.tear-sheet').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(out, 'archive-dark.png') });
+  check('header chevron is right aligned', await page.locator('.paper-header').evaluate((e) => e.querySelector('svg').getBoundingClientRect().left > e.querySelector('.paper-count').getBoundingClientRect().right));
   await rows().first().click(); await page.getByRole('button', { name: '编辑 周杰伦', exact: true }).click();
   await page.getByRole('radio', { name: '片名', exact: true }).check(); await page.getByLabel('名称', { exact: true }).fill('大鱼');
   await page.getByRole('button', { name: '保存', exact: true }).click(); await closeWait(); await reload();
   check('edited type and name persist', (await data())[0].name === '大鱼' && (await data())[0].type === 'title');
+  await page.evaluate(async () => {
+    const { on } = await import('/paopao/src/lib/assistantEvents.js');
+    window.__paperEvents = [];
+    ['blacklist:tear', 'blacklist:empty', 'blacklist:added'].forEach((name) => on(name, () => window.__paperEvents.push(name)));
+  });
   await rows().first().click(); await page.getByRole('button', { name: '删除 大鱼', exact: true }).click();
+  check('assistant tear event fires once at tear start', await page.evaluate(() => window.__paperEvents.filter((n) => n === 'blacklist:tear').length === 1));
   check('delete keeps data during animation and locks controls', (await data()).length === 3 && await page.locator('.paper-header').isDisabled());
   check('tear runs the crumple sequence, not a plain fade', await page.locator('.paper-scrap').evaluate((e) => getComputedStyle(e).animationName === 'paper-scrap-tear'));
   await page.waitForTimeout(180); await page.screenshot({ path: path.join(out, 'tear-1.png') });
@@ -94,8 +105,11 @@ try {
   check('left swipe only reveals deletion', (await data()).length === 1 && await page.locator('.paper-swiped').count() === 1);
   await page.getByRole('button', { name: '删除 小时代', exact: true }).click();
   await page.locator('.paper-tear-layer').waitFor({ state: 'detached' });
+  check('last deletion enters retraction before showing empty ink', await page.locator('.paper-empty-returning').count() === 1);
   await page.waitForTimeout(750);
+  check('empty reaction follows tear reaction', await page.evaluate(() => window.__paperEvents.at(-1) === 'blacklist:empty' && window.__paperEvents.filter((n) => n === 'blacklist:tear').length === 3));
   check('last deletion returns clean empty tongue', (await data()).length === 0 && await page.getByRole('button', { name: '＋ 添加第一条', exact: true }).isVisible());
+  await page.locator('.tear-sheet').scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(out, 'archive-empty.png') });
   await reload(); check('deletion survives reload', (await data()).length === 0);
   const many = Array.from({ length: 12 }, (_, i) => entry(`item-${i}`, ['actor', 'genre', 'title'][i % 3], ['周杰伦', '恐怖', '小时代'][i % 3] + i));
   await seed(many);
@@ -115,7 +129,7 @@ try {
   await seed([entry('long', 'title', '这是一个用于检查换行且不会横向溢出的非常长的电影名称'.repeat(3)), entry('actor', 'actor', '周杰伦'), entry('genre', 'genre', '恐怖')]);
   for (const theme of ['dark', 'light']) {
     await page.evaluate((theme) => localStorage.setItem('theme', JSON.stringify(theme)), theme); await reload();
-    for (const width of [320, 375, 390, 430]) {
+    for (const width of [320, 360, 375, 390, 414, 430]) {
       await page.setViewportSize({ width, height: 844 });
       await page.locator('.tear-sheet').scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
       check(`${theme} ${width}px: no horizontal overflow`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
