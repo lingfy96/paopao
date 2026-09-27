@@ -11,8 +11,7 @@ import storage from './lib/storage.js';
 import { haptic, isMuted, onMuteChange, reducedMotion, setMuted, sfx, unlockAudio } from './lib/fx.js';
 import { WEATHER, applyTheme, applyWeather, weatherFor } from './lib/weather.js';
 import {
-  DURATION_OPTIONS, FILTER_NAMES, GENRE_OPTIONS, PLATFORM_LABEL, RATING_OPTIONS, activeCount, defaultFilters, normalizeFilters,
-  platformsOf, relaxFilters,
+  FILTER_NAMES, GENRE_OPTIONS, PLATFORM_LABEL, activeCount, countFilteredMovies, normalizeFilters, platformsOf, relaxFilters,
 } from './lib/filters.js';
 import { HATCH_XP, SPECIES, feed as eggFeed, normalizeEgg, onOpen as eggOnOpen, speciesById } from './lib/egg.js';
 import { weeklyStats } from './lib/stats.js';
@@ -27,7 +26,10 @@ import MovieShowcaseResult from './components/MovieShowcaseResult';
 import { getMovieTheme, showcaseVariables, SHOWCASE_TIMING } from './lib/showcase.js';
 import BlacklistPaperRoll from './components/BlacklistPaperRoll';
 import BottomSheet from './components/BottomSheet';
+import LibraryFilterSheet from './components/LibraryFilterSheet';
 import { blacklistId } from './lib/blacklist.js';
+import PaopaoAssistant from './components/PaopaoAssistant';
+import { emit as assistantEmit } from './lib/assistantEvents.js';
 import './style.css';
 
 type Movie = (typeof movies)[number] & { reason?: string; rarity?: string; score?: number; hits?: number };
@@ -214,6 +216,12 @@ function App() {
     nav(PARENT[page] || '/');
   }
 
+  function chooseMood(next: string) {
+    setMood(next);
+    setMode('mood');
+    assistantEmit('mood:selected', next);
+  }
+
   // ---------- recommendation: mode → profile/mood → filters → blacklist/exclude → engine ----------
   function pick(p: any, newRound: boolean) {
     const attempts = [p];
@@ -317,6 +325,7 @@ function App() {
       sfx.flip();
       await sleep(fast ? SHOWCASE_TIMING.reduced : retry ? SHOWCASE_TIMING.switch : SHOWCASE_TIMING.reveal);
       setReveal({ phase: 'done' });
+      assistantEmit('movie:revealed', { id: result.id, title: result.title, rarity: result.rarity });
       if (result.rarity === 'SR') haptic(24);
       if (picked.loosened) notify('没有完全符合的，已为你悄悄放宽一点条件');
     } catch {
@@ -353,6 +362,7 @@ function App() {
     } else {
       setWatchlist((w) => [{ id: m.id, addedAt: new Date().toISOString() }, ...w.filter((x) => x.id !== m.id)]);
       notify('已加入稍后再看');
+      assistantEmit('watchlist:added', { id: m.id });
     }
   }
   function toggleFav(m: { id: number }) {
@@ -370,6 +380,7 @@ function App() {
     sfx.hatch();
     haptic([15, 30, 15]);
     notify(m.kind === 'ticket' ? '机票票根已贴上纪念墙' : '观影邮票已贴上纪念墙');
+    assistantEmit('checkin:success', { movieId: m.movieId });
     closeSheet('/memories');
   }
   function deleteMemory(m: Memory) {
@@ -512,18 +523,8 @@ function App() {
       {extra ?? <strong className="gold">{m.rating.toFixed(1)}</strong>}
     </div>
   );
-  const filterGroup = (title: string, options: any[], value: any, key: string, label: (v: any) => string) => (
-    <div className="filter-group">
-      <h3>{title}</h3>
-      <div className="chips">
-        {options.map((o) => (
-          <button key={String(o)} className={value === o ? 'chip selected' : 'chip'} aria-pressed={value === o} onClick={() => setFilters((f) => ({ ...f, [key]: o }))}>
-            {label(o)}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+  const toggleGenre = (g: string) =>
+    setFilters((f) => ({ ...f, genre: g === '全部' ? [] : f.genre.includes(g) ? f.genre.filter((x) => x !== g) : [...f.genre, g] }));
 
   const renderProfile = () => (
     <>
@@ -560,11 +561,46 @@ function App() {
       ))}
       <BlacklistPaperRoll key={editing} items={active.blacklist} onChange={(change) => {
         const setter = editing === 'partner' ? setPartner : setProfile;
-        setter((p) => ({ ...p, blacklist: change(p.blacklist) }));
+        setter((p) => {
+          const blacklist = change(p.blacklist);
+          if (blacklist.length < p.blacklist.length) assistantEmit('blacklist:tear', { left: blacklist.length });
+          return { ...p, blacklist };
+        });
       }} />
       <p className="muted">修改自动保存，只保存在这台设备上。</p>
     </>
   );
+
+  // The assistant may only ever see films the existing engine would really offer:
+  // filters plus both blacklists are applied here, before anything reaches the AI proxy.
+  const aiCandidates = useMemo(() => {
+    const base = { mode, mood, mbti, text, profile, partner, couple, exclude: [] as number[] };
+    const { pool } = relaxFilters(movies, filters, (list: any[]) => rank(list, base).length > 0);
+    return rank(pool, base).slice(0, 12);
+  }, [mode, mood, mbti, text, profile, partner, couple, filters]);
+
+  const recentTags = useMemo(() => {
+    const tally = new Map<string, number>();
+    history.slice(0, 12).forEach((h) => (byId.get(h.id)?.tags || []).forEach((t) => tally.set(t, (tally.get(t) || 0) + 1)));
+    return [...tally.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([tag]) => tag);
+  }, [history]);
+
+  // Rebuilt every render on purpose: each handler delegates to the existing business action
+  // with current state, so the assistant can never persist data through its own path.
+  const assistantActions: Record<string, (params: any) => void> = {
+    rerollMovie: () => void open(page === '/result' && (locked || round.length < ROUND_MAX)),
+    setMood: ({ mood: next }) => chooseMood(next),
+    addWatchlist: ({ movieId }) => void (byId.get(movieId) && !inWatch(movieId) && toggleWatch({ id: movieId })),
+    removeWatchlist: ({ movieId }) => void (inWatch(movieId) && toggleWatch({ id: movieId })),
+    openMovie: ({ movieId }) => void (byId.get(movieId) && openSheet('movie:' + movieId)),
+    openCheckin: ({ movieId }) => openCheckin(byId.get(movieId) ? movieId : current?.id),
+    openBlacklistAdd: ({ type, name }) => {
+      setProfile((p) => ({ ...p, blacklist: [...p.blacklist, { id: blacklistId(), type, name }] }));
+      setEditing('profile');
+      nav('/profile');
+      notify(`已把「${name}」加入黑名单，可以随时撕掉`);
+    },
+  };
 
   const section = page === '/library' ? '/library' : ['/', '/mbti', '/mood', '/result', '/share'].includes(page) ? '/' : '/me';
   const phase = reveal.phase;
@@ -650,7 +686,7 @@ function App() {
                 {mode === 'mood' && (
                   <div className="mood-scroll" role="listbox" aria-label="此刻心情">
                     {Object.keys(WEATHER).map((k) => (
-                      <button key={k} role="option" aria-selected={mood === k} className={`mood-chip ${mood === k ? 'on' : ''}`} onClick={() => setMood(k)}>
+                      <button key={k} role="option" aria-selected={mood === k} className={`mood-chip ${mood === k ? 'on' : ''}`} onClick={() => chooseMood(k)}>
                         <i aria-hidden>{WEATHER[k].icon}</i>
                         {WEATHER[k].label}
                       </button>
@@ -787,10 +823,7 @@ function App() {
               {chips(
                 Object.keys(moods),
                 mode === 'mood' ? [mood] : [],
-                (m) => {
-                  setMood(m);
-                  setMode('mood');
-                },
+                chooseMood,
                 (m) => (
                   <>
                     <i aria-hidden>{WEATHER[m]?.icon}</i>
@@ -883,11 +916,14 @@ function App() {
                     <Bookmark size={14} fill={onlyFav ? 'currentColor' : 'none'} />
                     收藏
                   </button>
-                  {GENRE_OPTIONS.map((g) => (
-                    <button key={g} className={filters.genre === g ? 'chip selected' : 'chip'} aria-pressed={filters.genre === g} onClick={() => setFilters((f) => ({ ...f, genre: g }))}>
-                      {g}
-                    </button>
-                  ))}
+                  {GENRE_OPTIONS.map((g) => {
+                    const on = g === '全部' ? !filters.genre.length : filters.genre.includes(g);
+                    return (
+                      <button key={g} className={on ? 'chip selected' : 'chip'} aria-pressed={on} onClick={() => toggleGenre(g)}>
+                        {g}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <p className="muted small-note">
@@ -1215,6 +1251,19 @@ function App() {
         </nav>
       </main>
 
+      {!intro && <PaopaoAssistant
+        snapshot={{
+          page, mode, mood, mbti,
+          currentMovie: page === '/result' ? current : undefined,
+          currentInWatchlist: !!current && inWatch(current.id),
+          candidates: aiCandidates,
+          blacklist: couple ? [...profile.blacklist, ...partner.blacklist] : profile.blacklist,
+          likedTags: profile.tags, recentTags,
+        }}
+        hidden={!!sheet || phase === 'silhouette' || landscape}
+        accent={showcaseActive ? movieTheme.accent : undefined}
+        moods={Object.keys(moods)} movieIds={movies.map((m) => m.id)}
+        movieById={(id) => byId.get(id)} inWatch={inWatch} actions={assistantActions} />}
       {intro && <Intro onDone={() => setIntro(false)} />}
       <SsrOverlay stamp={ssr} />
       {toast && (
@@ -1223,7 +1272,18 @@ function App() {
         </div>
       )}
 
-      {sheet && (
+      {sheet === 'filters' && (
+        <LibraryFilterSheet
+          applied={filters}
+          platforms={platformsOf(movies).slice(1)}
+          genres={GENRE_OPTIONS.slice(1)}
+          platformLabel={(p) => PLATFORM_LABEL[p as keyof typeof PLATFORM_LABEL] || p}
+          count={(f) => countFilteredMovies(movies, f, matchQuery)}
+          onApply={setFilters}
+          onClose={() => closeSheet()}
+        />
+      )}
+      {sheet && sheet !== 'filters' && (
         <BottomSheet onClose={() => closeSheet()}>
             {sheet === 'onboard' && (
               <div className="onboarding">
@@ -1329,22 +1389,6 @@ function App() {
                 );
               })()}
 
-            {sheet === 'filters' && (
-              <div className="filters">
-                <h2>片库筛选</h2>
-                <p className="muted">筛选也会影响开盒推荐；没有结果时会自动放宽。</p>
-                {filterGroup('评分', RATING_OPTIONS, filters.minRating, 'minRating', (v) => (v ? `${v} 分以上` : '不限'))}
-                {filterGroup('时长', DURATION_OPTIONS, filters.maxDuration, 'maxDuration', (v) => (v ? `${v} 分钟内` : '不限'))}
-                {filterGroup('平台', platformsOf(movies), filters.platform, 'platform', (v) => (v === '全部' ? '全部' : PLATFORM_LABEL[v] || v))}
-                {filterGroup('类型', GENRE_OPTIONS, filters.genre, 'genre', (v) => v)}
-                <div className="two-buttons">
-                  <button onClick={() => setFilters({ ...defaultFilters })}>重置</button>
-                  <button className="primary" onClick={() => closeSheet()}>
-                    看 {library.list.length} 部
-                  </button>
-                </div>
-              </div>
-            )}
         </BottomSheet>
       )}
     </div>

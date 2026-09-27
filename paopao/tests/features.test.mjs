@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { rank, choose } from '../src/engine.js';
-import { relaxFilters, applyFilters, normalizeFilters, activeCount, defaultFilters } from '../src/lib/filters.js';
+import { relaxFilters, applyFilters, normalizeFilters, activeCount, defaultFilters, countFilteredMovies, summarizeFilters } from '../src/lib/filters.js';
 import { normalizeEgg, onOpen, feed, pickSpecies, HATCH_XP, SPECIES, defaultEgg } from '../src/lib/egg.js';
 import { weeklyStats, weekStart } from '../src/lib/stats.js';
 
@@ -33,6 +33,36 @@ test('empty filter result relaxes lowest priority first, never touching blacklis
   const r = relaxFilters(movies, { ...defaultFilters, genre: '治愈' }, (pl) => rank(pl, p).length > 0);
   assert.ok(r.relaxed.includes('genre'));
   assert.ok(rank(r.pool, p).every((m) => !m.tags.includes('治愈')));
+});
+
+test('legacy single-select storage migrates onto the tiered, multi-select model', () => {
+  assert.deepEqual(normalizeFilters({ minRating: 7, platform: '腾讯', maxDuration: 130, genre: '全部' }), { minRating: 8, platform: ['腾讯'], maxDuration: 120, genre: [] });
+  assert.deepEqual(normalizeFilters({ minRating: 9, platform: ['腾讯', '腾讯', 3], maxDuration: 0, genre: ['悬疑', '全部'] }), { minRating: 9, platform: ['腾讯'], maxDuration: 0, genre: ['悬疑'] });
+  assert.equal(normalizeFilters({ maxDuration: 100 }).maxDuration, 90);
+});
+
+test('genres combine with OR, and the live count is the library predicate', () => {
+  const f = normalizeFilters({ genre: ['悬疑', '治愈'] });
+  const pool = applyFilters(movies, f);
+  assert.ok(pool.length > 0 && pool.every((m) => m.tags.includes('悬疑') || m.tags.includes('治愈')));
+  assert.equal(countFilteredMovies(movies, f), pool.length);
+  assert.equal(countFilteredMovies(movies, { ...defaultFilters, maxDuration: 120 }), movies.filter((m) => m.duration <= 120).length);
+  assert.equal(countFilteredMovies(movies, f, (m) => m.rating >= 9), pool.filter((m) => m.rating >= 9).length);
+  assert.equal(countFilteredMovies(movies, { ...defaultFilters, platform: ['不存在的平台'] }), 0);
+});
+
+test('relaxing multi-select filters resets them to "all"', () => {
+  const r = relaxFilters(movies, { ...defaultFilters, platform: ['不存在的平台'] });
+  assert.deepEqual(r.relaxed, ['platform']);
+  assert.deepEqual(r.filters.platform, []);
+  assert.equal(activeCount(normalizeFilters({ platform: ['腾讯'], genre: ['悬疑', '科幻'] })), 2);
+});
+
+test('summary reads naturally and has a compact form', () => {
+  assert.equal(summarizeFilters(defaultFilters), '全部平台 · 全部类型');
+  assert.equal(summarizeFilters({ ...defaultFilters, platform: ['腾讯'], genre: ['悬疑'] }), '腾讯视频 · 悬疑');
+  assert.equal(summarizeFilters({ ...defaultFilters, platform: ['腾讯', 'B站'], genre: ['悬疑', '科幻', '治愈'] }), '腾讯视频 等 2 个 · 悬疑等 3 类');
+  assert.equal(summarizeFilters({ ...defaultFilters, platform: ['腾讯', 'B站'], genre: ['悬疑', '科幻', '治愈'] }, { short: true }), '2 个平台 · 3 个类型');
 });
 
 test('filters do not change engine ordering inside the pool', () => {

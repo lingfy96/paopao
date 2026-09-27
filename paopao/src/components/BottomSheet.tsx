@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 /** Shared visual shell, with keyboard focus containment and background scroll lock. */
-export default function BottomSheet({ children, onClose, label = '操作菜单' }: {
-  children: React.ReactNode; onClose: () => void; label?: string;
+export default function BottomSheet({ children, onClose, label = '操作菜单', className = '', hideClose = false, closing = false }: {
+  children: React.ReactNode; onClose: () => void; label?: string; className?: string; hideClose?: boolean; closing?: boolean;
 }) {
   const panel = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
@@ -32,10 +32,10 @@ export default function BottomSheet({ children, onClose, label = '操作菜单' 
       if (previous?.isConnected) previous.focus({ preventScroll: true });
     };
   }, []);
-  return createPortal(<div className="modal-backdrop" onClick={onClose}>
-    <section ref={panel} className="sheet" role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-      <button className="close icon-btn" aria-label="关闭" onClick={onClose}><X size={20} /></button>
-      <div className="sheet-handle" />
+  return createPortal(<div className={`modal-backdrop ${className ? className + '-backdrop' : ''} ${closing ? 'is-closing' : ''}`} onClick={onClose}>
+    <section ref={panel} className={`sheet ${className} ${closing ? 'is-closing' : ''}`} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+      {!hideClose && <button className="close icon-btn" aria-label="关闭" onClick={onClose}><X size={20} /></button>}
+      {!hideClose && <div className="sheet-handle" />}
       {children}
     </section>
   </div>, document.body);

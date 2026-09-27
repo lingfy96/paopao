@@ -32,6 +32,7 @@ test('same mood gives deterministic film variations; mode and theme changes appl
   const movie = { id: 2, tags: ['治愈'] };
   assert.deepEqual(getMovieTheme(movie, '有点 emo'), getMovieTheme(movie, '有点 emo'));
   assert.notEqual(getMovieTheme(movie, '有点 emo').background, getMovieTheme({ ...movie, id: 3 }, '有点 emo').background);
+  assert.notEqual(getMovieTheme(movie, '').background, getMovieTheme({ ...movie, id: 3 }, '').background);
   assert.notEqual(getMovieTheme(movie, '有点 emo').background, getMovieTheme(movie, '想笑一下').background);
   assert.notEqual(getMovieTheme(movie, '', 'dark').background, getMovieTheme(movie, '', 'light').background);
 });

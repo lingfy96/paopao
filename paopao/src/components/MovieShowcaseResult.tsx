@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
-import { ArrowRight, Bookmark, Check, ChevronDown, Clapperboard, Clock, Film, Share2, Ticket } from 'lucide-react';
+import { ArrowRight, Bookmark, Check, ChevronDown, Clapperboard, Clock, Film, Share2, Star, Ticket } from 'lucide-react';
 import { getMovieTheme, normalizeMovieCardData, showcaseVariables, SHOWCASE_TIMING } from '../lib/showcase.js';
 import { reducedMotion } from '../lib/fx.js';
 import type { RevealPhase } from './Reveal';
@@ -30,7 +30,6 @@ export function MovieShowcaseCard({ movie, mood, themeMode, heading = true }: Sn
   const data = normalizeMovieCardData(movie, mood, import.meta.env.BASE_URL);
   const theme = getMovieTheme(movie, mood, themeMode);
   const Heading = heading ? 'h1' : 'div';
-  const meta = [data.year, data.rating ? `${data.rating.toFixed(1)} 分` : '', data.platform].filter(Boolean);
   return <article className={`showcase-card title-${data.titleSize}`} data-movie-id={movie.id} data-rarity={data.rarity}
     style={showcaseVariables(theme) as React.CSSProperties} aria-label={heading ? `电影卡：${data.title}` : undefined}>
     <div className="showcase-card-top">
@@ -41,7 +40,11 @@ export function MovieShowcaseCard({ movie, mood, themeMode, heading = true }: Sn
       <Heading className="showcase-title">{data.title}</Heading>
       {data.originalTitle && <p className="showcase-original">{data.originalTitle}</p>}
     </div>
-    {meta.length > 0 && <p className="showcase-meta">{meta.map((value, i) => <React.Fragment key={i}>{i > 0 && <span aria-hidden>·</span>}<span>{value}</span></React.Fragment>)}</p>}
+    {(data.year || data.rating || data.platform) && <div className="showcase-meta" aria-label="影片信息">
+      {data.year && <span>{data.year}</span>}
+      {data.rating && <span className="showcase-rating"><Star size={11} fill="currentColor" aria-hidden />{data.rating.toFixed(1)}</span>}
+      {data.platform && <span>{data.platform}</span>}
+    </div>}
     <div className="showcase-editorial">
       <div className="showcase-reason">
         <span className="showcase-small-label">{data.mood ? `此刻 · ${data.mood}` : '今晚的偶然'}</span>
@@ -59,6 +62,8 @@ export default function MovieShowcaseResult(props: Props) {
   const { movie, phase, busy, mood, themeMode } = props;
   const snapshot = movie ? { movie, mood, themeMode } : null;
   const previous = useRef<Snapshot | null>(phase === 'silhouette' ? null : snapshot);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ pointer: number; x: number; y: number; dx: number; axis: '' | 'x' | 'y' }>({ pointer: -1, x: 0, y: 0, dx: 0, axis: '' });
   const [transition, setTransition] = useState<{ outgoing: Snapshot | null; kind: 'rest' | 'initial' | 'next'; stamp: number }>({ outgoing: null, kind: 'rest', stamp: 0 });
   const preparing = phase === 'silhouette' || !movie;
   useLayoutEffect(() => {
@@ -72,18 +77,59 @@ export default function MovieShowcaseResult(props: Props) {
     return () => clearTimeout(timeout);
   }, [movie, phase === 'silhouette']);
   const changing = busy || transition.kind !== 'rest';
+  const swipeEnabled = !preparing && !changing && !props.againDisabled;
   const data = movie ? normalizeMovieCardData(movie, mood, import.meta.env.BASE_URL) : null;
   const theme = getMovieTheme(movie, mood, themeMode);
+  const clearDrag = () => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    stage.classList.remove('is-dragging');
+    stage.style.removeProperty('--showcase-drag-x');
+    stage.style.removeProperty('--showcase-drag-rotate');
+  };
+  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!swipeEnabled || reducedMotion() || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    drag.current = { pointer: event.pointerId, x: event.clientX, y: event.clientY, dx: 0, axis: '' };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const state = drag.current;
+    if (state.pointer !== event.pointerId || !swipeEnabled) return;
+    const dx = event.clientX - state.x;
+    const dy = event.clientY - state.y;
+    if (!state.axis && Math.hypot(dx, dy) > 8) state.axis = Math.abs(dx) > Math.abs(dy) * 1.25 ? 'x' : 'y';
+    if (state.axis !== 'x') return;
+    event.preventDefault();
+    const stage = stageRef.current;
+    if (!stage) return;
+    const limit = stage.clientWidth * .38;
+    state.dx = Math.max(-limit, Math.min(limit * .28, dx));
+    stage.classList.add('is-dragging');
+    stage.style.setProperty('--showcase-drag-x', `${state.dx}px`);
+    stage.style.setProperty('--showcase-drag-rotate', `${state.dx / Math.max(stage.clientWidth, 1) * 5}deg`);
+  };
+  const finishDrag = (event: React.PointerEvent<HTMLDivElement>, cancelled = false) => {
+    const state = drag.current;
+    if (state.pointer !== event.pointerId) return;
+    const stage = stageRef.current;
+    const commit = !cancelled && swipeEnabled && state.axis === 'x' && state.dx < -Math.min(84, (stage?.clientWidth || 360) * .2);
+    drag.current = { pointer: -1, x: 0, y: 0, dx: 0, axis: '' };
+    clearDrag();
+    if (commit) props.onAgain();
+  };
 
   return <section className={`showcase-result motif-${theme.motif}`} aria-label="今晚的电影卡" aria-busy={busy}>
     <div className="showcase-decorations" aria-hidden><i /><i /><i /><i /></div>
     <div className="showcase-kicker"><span>今晚，故事属于你</span><span>{String(props.selected + 1).padStart(2, '0')} / {String(props.roundMax).padStart(2, '0')}</span></div>
-    <div className={`showcase-stage is-${transition.kind} ${phase === 'leaving' ? 'is-pending' : ''}`}>
+    <div ref={stageRef} className={`showcase-stage is-${transition.kind} ${phase === 'leaving' ? 'is-pending' : ''}`}
+      onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+      onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)}>
       <div className="showcase-stack" aria-hidden><i /><i /></div>
       {preparing ? <div className="showcase-mystery" role="status"><span>下一幕</span><Clapperboard size={54} strokeWidth={1} /><h1>故事正在<br />显影。</h1><p>为现在的你，挑一个好故事</p><div className="showcase-loading-line" /></div> :
         <div className="showcase-current" key={`${movie.id}-${transition.stamp}`}><MovieShowcaseCard {...snapshot!} /></div>}
       {!preparing && transition.outgoing && <div className="showcase-outgoing" aria-hidden inert><MovieShowcaseCard {...transition.outgoing} heading={false} /></div>}
     </div>
+    {movie && !preparing && <p className="showcase-swipe-hint" aria-hidden>向左轻扫，也能抽下一张</p>}
     {movie && !preparing && <div className={`showcase-controls ${transition.kind === 'initial' ? 'controls-arriving' : ''}`}>
       <button className="showcase-next" aria-label={props.againLabel} disabled={changing || props.againDisabled} onClick={props.onAgain}>
         <span>{phase === 'leaving' ? '正在抽下一张…' : props.againLabel}</span><ArrowRight size={22} aria-hidden />

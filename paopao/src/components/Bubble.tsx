@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { haptic, reducedMotion, sfx, unlockAudio } from '../lib/fx.js';
+import { emit } from '../lib/assistantEvents.js';
 
 const CHARGE_MS = 1500;
 const OVERHOLD_MS = 450;
@@ -103,6 +104,12 @@ export default function Bubble({ onOpen, disabled, idleLabel, hint, couple = fal
 
   const setCharge = (v: number) => el.current?.style.setProperty('--charge', v.toFixed(3));
   const fused = () => sides.L && sides.R;
+
+  // The assistant steps back while the main bubble is being blown, then cheers at the threshold.
+  useEffect(() => {
+    if (phase === 'charging') emit(stage >= 3 ? 'open:threshold' : 'open:charging', stage);
+    else if (phase === 'idle') emit('open:charging:end', 0);
+  }, [phase, stage]);
 
   function reset() {
     const st = s.current;

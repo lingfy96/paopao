@@ -3,6 +3,9 @@ dist/
 __pycache__/
 *.sqlite3
 .venv/
+.env
+.env.local
+.env.*.local
 
 # Generated visual QA, recordings, and scratch outputs (never commit)
 screenshots/

@@ -136,6 +136,14 @@ try {
     await page.addStyleTag({ content: '.showcase-result * { animation: none !important; transition: none !important; }' });
     await tapNext();
     check('disabled CSS animations never leave hidden cards or locks', await card().evaluate((e) => getComputedStyle(e).opacity === '1') && await page.locator('.showcase-outgoing').count() === 0);
+    await seed([movies[1]]);
+    const swipeBox = await card().boundingBox();
+    await page.mouse.move(swipeBox.x + swipeBox.width * .8, swipeBox.y + swipeBox.height * .5);
+    await page.mouse.down();
+    await page.mouse.move(swipeBox.x + swipeBox.width * .25, swipeBox.y + swipeBox.height * .5, { steps: 5 });
+    await page.mouse.up();
+    await settle();
+    check('left swipe triggers one guarded next-card action', (await stored('round')).length === 2 && await card().getAttribute('data-movie-id') !== '2');
     await page.getByRole('button', { name: '收藏电影', exact: true }).focus(); await page.keyboard.press('Enter');
     check('keyboard activation retains favorite action', await page.getByRole('button', { name: '取消收藏', exact: true }).getAttribute('aria-pressed') === 'true');
     check('no browser runtime errors', errors.length === 0);

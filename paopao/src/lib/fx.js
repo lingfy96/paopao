@@ -154,6 +154,11 @@ export const sfx = {
     noise(ac, { dur: 0.07, freq: 2200, gain: 0.5 });
     tone(ac, { type: 'sine', from: 950, to: 140, dur: 0.12, gain: 0.25, attack: 0.003 });
   }),
+  /** A much quieter pop for control snaps. */
+  softPop: safe((ac) => {
+    noise(ac, { dur: 0.04, freq: 2600, q: 1.4, gain: 0.07 });
+    tone(ac, { type: 'sine', from: 1100, to: 420, dur: 0.07, gain: 0.05, attack: 0.002 });
+  }),
   flip: safe((ac) => {
     noise(ac, { dur: 0.12, freq: 3200, q: 0.7, gain: 0.12 });
   }),

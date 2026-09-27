@@ -1,0 +1,210 @@
+/* Scoped to the assistant. Other routes and the global theme stay untouched. */
+:root {
+  --paopao-fast: 140ms;
+  --paopao-base: 320ms;
+  --paopao-slow: 520ms;
+  --paopao-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --paopao-shell-light: #f4e7ff;
+  --paopao-shell: #c9a0f5;
+  --paopao-shell-deep: #6f4bb3;
+  --paopao-rim: rgba(255, 255, 255, 0.72);
+  --paopao-ink: #2a2038;
+  --paopao-blush: rgba(255, 138, 190, 0.5);
+  --paopao-panel: var(--glass-solid);
+}
+[data-theme='light'] {
+  --paopao-shell-light: #fff6e2;
+  --paopao-shell: #f0c778;
+  --paopao-shell-deep: #c98b2c;
+  --paopao-rim: rgba(255, 255, 255, 0.9);
+  --paopao-blush: rgba(240, 120, 150, 0.42);
+}
+
+/* ---------- shared ball: one node morphs between dock, edge and chat header ---------- */
+.paopao-layer {
+  position: fixed; left: 0; top: 0; z-index: 55; width: 56px; height: 56px;
+  transform: translate3d(var(--paopao-x), var(--paopao-y), 0) scale(var(--paopao-scale));
+  transform-origin: 0 0;
+  transition: transform var(--paopao-slow) var(--paopao-ease), opacity var(--paopao-base) var(--paopao-ease);
+}
+.paopao-layer.is-fixing { transition: none; }
+.paopao-layer.is-hidden { opacity: 0; pointer-events: none; transform: translate3d(var(--paopao-x), var(--paopao-y), 0) scale(calc(var(--paopao-scale) * 0.7)); }
+.paopao-layer.is-chat { z-index: 60; }
+.paopao-layer.is-chat .paopao-ball { pointer-events: none; }
+.paopao-ball {
+  position: relative; display: grid; place-items: center; width: 56px; height: 56px; min-height: 56px; padding: 0;
+  border-radius: 50%; background: none; filter: drop-shadow(0 6px 16px rgba(20, 10, 40, 0.28));
+}
+.paopao-ball:active:not(:disabled) { transform: scale(0.955); transition: transform var(--paopao-fast) var(--paopao-ease); }
+.paopao-ball:focus-visible { outline: 2px solid var(--paopao-accent); outline-offset: 4px; border-radius: 50%; }
+.paopao-layer.is-floating .paopao-ball { animation: paopao-bob 4.2s ease-in-out infinite; }
+.paopao-ball.is-busy { filter: drop-shadow(0 0 12px color-mix(in srgb, var(--paopao-accent) 70%, transparent)); }
+.paopao-dot {
+  position: absolute; right: 4px; top: 5px; width: 11px; height: 11px; border-radius: 50%;
+  background: var(--paopao-accent); border: 2px solid var(--bg); animation: paopao-pulse 1.8s ease-in-out infinite;
+}
+@keyframes paopao-bob { 50% { translate: 0 -4px; } }
+@keyframes paopao-pulse { 50% { opacity: 0.45; } }
+@media (hover: hover) and (pointer: fine) {
+  .paopao-ball:hover { filter: drop-shadow(0 8px 20px rgba(20, 10, 40, 0.36)) brightness(1.06); }
+}
+
+/* ---------- face ---------- */
+.paopao-face { display: block; overflow: visible; }
+.paopao-face .bubble-shell, .paopao-face .eyes, .paopao-face .pupils, .paopao-face .brows,
+.paopao-face .mouth, .paopao-face .blush, .paopao-face .highlight {
+  transform-box: fill-box; transform-origin: center; transition: transform var(--paopao-base) var(--paopao-ease), opacity var(--paopao-base);
+}
+.paopao-face .eye-left, .paopao-face .eye-right { transform-box: fill-box; transform-origin: center; transition: transform 140ms var(--paopao-ease); }
+.paopao-face .mouth-open, .paopao-face .eye-lids, .paopao-face .thinking-dots { opacity: 0; }
+.paopao-face .blush { opacity: 0.75; }
+.paopao-face .brows { opacity: 0; transition: opacity var(--paopao-base), transform var(--paopao-base) var(--paopao-ease); }
+
+/* blink + closed-eye expressions share the lid path */
+.paopao-face.is-blinking .eye-left, .paopao-face.is-blinking .eye-right { transform: scaleY(0.12); }
+.paopao-face.is-blinking .pupils { opacity: 0; }
+
+.paopao-face.event-excited .eyes { transform: scale(1.16); }
+.paopao-face.event-excited .mouth-line { opacity: 0; }
+.paopao-face.event-excited .mouth-open { opacity: 1; }
+.paopao-face.event-excited .bubble-shell { animation: paopao-pop 700ms var(--paopao-ease); }
+.paopao-face.event-happy .eye-left, .paopao-face.event-happy .eye-right,
+.paopao-face.event-success .eye-left, .paopao-face.event-success .eye-right { transform: scaleY(0.18); }
+.paopao-face.event-happy .eye-lids, .paopao-face.event-success .eye-lids { opacity: 1; }
+.paopao-face.event-happy .pupils, .paopao-face.event-success .pupils { opacity: 0; }
+.paopao-face.event-happy .blush, .paopao-face.event-success .blush { opacity: 1; transform: scale(1.14); }
+.paopao-face.event-surprised .eyes { transform: scale(1.1); }
+.paopao-face.event-surprised .mouth-line { opacity: 0; }
+.paopao-face.event-surprised .mouth-open { opacity: 1; transform: scale(0.72); }
+.paopao-face.event-surprised .brows { opacity: 0.85; transform: translateY(-2px); }
+.paopao-face.event-sad .mouth-line { transform: rotate(180deg) translateY(2px); }
+.paopao-face.event-sad .eyes { transform: translateY(1.5px) scaleY(0.82); }
+.paopao-face.event-lookAtCard .pupils { transform: translate(-2.2px, 1.6px); }
+.paopao-face.event-lookAtCard .eyes { transform: translate(-1.4px, 1px); }
+.paopao-face.event-peek .bubble-shell { animation: paopao-peek 900ms var(--paopao-ease); }
+.paopao-face.event-yawn .mouth-line { opacity: 0; }
+.paopao-face.event-yawn .mouth-open { opacity: 1; transform: scale(1.1) translateY(1px); }
+.paopao-face.event-yawn .eye-left, .paopao-face.event-yawn .eye-right { transform: scaleY(0.2); }
+.paopao-face.event-yawn .eye-lids { opacity: 1; }
+.paopao-face.event-yawn .pupils { opacity: 0; }
+
+.paopao-face.base-thinking .thinking-dots { opacity: 1; }
+.paopao-face.base-thinking .thinking-dots circle { animation: paopao-think 1.15s ease-in-out infinite; }
+.paopao-face.base-thinking .thinking-dots circle:nth-child(2) { animation-delay: 0.16s; }
+.paopao-face.base-thinking .thinking-dots circle:nth-child(3) { animation-delay: 0.32s; }
+.paopao-face.base-thinking .eyes { transform: scale(0.92) translateY(-0.5px); }
+.paopao-face.base-thinking .pupils { transform: translate(1.6px, -1.2px); }
+.paopao-face.base-speaking .mouth-line { animation: paopao-speak 420ms steps(1) infinite alternate; }
+.paopao-face.base-speaking .mouth-open { animation: paopao-speak-open 420ms steps(1) infinite alternate; }
+.paopao-face.base-sleepy .eye-left, .paopao-face.base-sleepy .eye-right { transform: scaleY(0.24); }
+.paopao-face.base-sleepy .eye-lids { opacity: 1; }
+.paopao-face.base-sleepy .pupils { opacity: 0; }
+
+.paopao-face.mood-happy .eye-left, .paopao-face.mood-happy .eye-right { transform: scaleY(0.4); }
+.paopao-face.mood-happy .blush { opacity: 1; }
+.paopao-face.mood-scared .pupils { transform: scale(1.5); }
+.paopao-face.mood-scared .bubble-shell { transform: scale(0.94); }
+.paopao-face.mood-scared .brows { opacity: 0.7; transform: translateY(-1.5px); }
+.paopao-face.mood-anxious .brows { opacity: 0.9; transform: rotate(-4deg); }
+.paopao-face.mood-anxious .pupils { transform: translateY(-1px) scale(0.9); }
+.paopao-face.mood-calm .eye-left, .paopao-face.mood-calm .eye-right { transform: scaleY(0.26); }
+.paopao-face.mood-calm .eye-lids { opacity: 1; }
+.paopao-face.mood-calm .pupils { opacity: 0; }
+.paopao-face.small .bubble-shell { transform: scale(0.88); }
+.paopao-face.look-left .pupils { transform: translateX(-2.4px); }
+.paopao-face.look-right .pupils { transform: translateX(2.4px); }
+
+@keyframes paopao-pop { 35% { transform: scale(1.12, 0.92); } 70% { transform: scale(0.96, 1.05); } }
+@keyframes paopao-peek { 40% { transform: translateY(-5px) rotate(-6deg); } 75% { transform: translateY(1px) rotate(3deg); } }
+@keyframes paopao-think { 50% { transform: translateY(-2.6px); opacity: 0.45; } }
+@keyframes paopao-speak { to { transform: scaleY(0.6); } }
+@keyframes paopao-speak-open { from { opacity: 0.9; transform: scale(0.5); } to { opacity: 0.9; transform: scale(0.72); } }
+
+/* ---------- local speech bubble ---------- */
+.paopao-bubble {
+  position: absolute; right: calc(100% + 10px); top: 6px; width: max-content; max-width: min(56vw, 260px);
+  padding: 9px 13px; border-radius: 15px 15px 4px 15px; font-size: 13px; line-height: 1.55; text-align: left;
+  color: var(--text); background: var(--glass-solid); border: 1px solid var(--line-strong);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.26); animation: paopao-bubble-in 260ms var(--paopao-ease) both;
+  transform-origin: 100% 0;
+  pointer-events: none;
+}
+.paopao-bubble button { pointer-events: auto; }
+.is-docked .paopao-bubble { right: auto; left: calc(100% + 10px); top: 46px; border-radius: 4px 15px 15px 15px; transform-origin: 0 0; }
+.paopao-bubble button { min-height: 0; padding: 0; text-align: left; color: var(--accent); font-size: 13px; line-height: 1.55; }
+@keyframes paopao-bubble-in { from { opacity: 0; transform: scale(0.86) translateY(4px); } }
+
+/* ---------- chat sheet ---------- */
+/* Compound selectors: this file loads before style.css, whose `.sheet` / `.modal-backdrop` would otherwise win. */
+.sheet.paopao-sheet { display: flex; flex-direction: column; height: min(72dvh, 680px); max-height: 88dvh; padding: 0; overflow: hidden; }
+.paopao-chat-head {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  padding: 12px 10px 10px 16px; border-bottom: 1px solid var(--line);
+}
+.paopao-chat-avatar { width: 38px; height: 38px; flex-shrink: 0; border-radius: 50%; }
+.paopao-chat-title { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 2px; }
+.paopao-chat-title b { font-size: 16px; }
+.paopao-chat-title small { color: var(--muted); font-size: 11px; }
+.paopao-chat-new { display: inline-flex; align-items: center; gap: 5px; padding: 0 12px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--text-2); font-size: 12px; }
+.paopao-chat-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.paopao-chat-empty { margin: auto 0; text-align: center; color: var(--text-2); font-size: 15px; }
+.paopao-msg-user {
+  align-self: flex-end; max-width: 84%; margin: 0; padding: 10px 14px; border-radius: 16px 16px 4px 16px;
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface)); color: var(--text); font-size: 14px; line-height: 1.7;
+  overflow-wrap: anywhere; white-space: pre-wrap;
+}
+.paopao-msg-ai { max-width: 96%; font-size: 14px; line-height: 1.8; color: var(--text); }
+.paopao-msg-ai p { margin: 0 0 8px; overflow-wrap: anywhere; }
+.paopao-msg-ai p:last-child { margin-bottom: 0; }
+.paopao-msg-ai ul { margin: 0 0 8px; padding-left: 20px; }
+.paopao-msg-ai li { margin-bottom: 4px; }
+.paopao-msg-ai a { color: var(--accent); text-decoration: underline; }
+.paopao-msg-note, .paopao-msg-thinking { color: var(--muted); font-size: 12px; }
+.paopao-msg-thinking { margin: 0; animation: paopao-pulse 1.4s ease-in-out infinite; }
+.paopao-msg-error { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 11px 13px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line-strong); font-size: 13px; color: var(--text-2); }
+.paopao-msg-error button { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); font-size: 13px; }
+.paopao-confirm { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 11px 13px; border-radius: 14px; background: var(--surface-2); font-size: 13px; }
+.paopao-confirm span { flex: 1; min-width: 120px; }
+.paopao-confirm button { min-height: 40px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 13px; }
+.paopao-confirm .paopao-confirm-yes { border-color: transparent; background: linear-gradient(110deg, var(--cta-a), var(--cta-b)); color: var(--cta-ink); font-weight: 600; }
+
+.paopao-movie-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.paopao-movie { display: flex; align-items: stretch; gap: 8px; }
+.paopao-movie-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: 15px; background: var(--surface); border: 1px solid var(--line); text-align: left; }
+.paopao-movie-art { flex-shrink: 0; display: grid; place-items: center; width: 40px; height: 54px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #f3eaf8; background: linear-gradient(150deg, hsl(var(--h) 38% 40%), hsl(calc(var(--h) + 40) 32% 18%)); }
+.paopao-movie-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.paopao-movie-text b { font-size: 14px; overflow-wrap: anywhere; }
+.paopao-movie-text small { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.paopao-movie-save { flex-shrink: 0; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; width: 62px; border-radius: 15px; border: 1px solid var(--line-strong); color: var(--text-2); font-size: 11px; }
+.paopao-movie-save.on { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+
+.paopao-to-latest { position: absolute; left: 50%; bottom: 152px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 5px; padding: 0 14px; min-height: 40px; border-radius: 999px; background: var(--glass-solid); border: 1px solid var(--line-strong); font-size: 12px; box-shadow: var(--shadow); }
+.paopao-chat-foot { flex-shrink: 0; border-top: 1px solid var(--line); padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: var(--bg-elev); }
+.paopao-prompts { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 9px; scrollbar-width: none; }
+.paopao-prompts::-webkit-scrollbar { display: none; }
+.paopao-prompts button { flex: none; padding: 0 13px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text-2); font-size: 13px; white-space: nowrap; }
+.paopao-composer { display: flex; align-items: flex-end; gap: 9px; }
+.paopao-composer textarea { flex: 1; min-height: 48px; max-height: 132px; padding: 13px 14px; border-radius: 16px; resize: none; line-height: 1.5; overflow-y: auto; }
+.paopao-send { flex-shrink: 0; display: grid; place-items: center; width: 48px; height: 48px; min-height: 48px; border-radius: 50%; background: linear-gradient(120deg, var(--cta-a), var(--cta-b)); color: var(--cta-ink); }
+.paopao-send.is-stop { background: var(--surface-2); color: var(--text); border: 1px solid var(--line-strong); }
+.paopao-limit { display: block; margin-top: 7px; color: var(--muted); font-size: 11px; }
+.paopao-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (min-width: 900px) {
+  .modal-backdrop.paopao-sheet-backdrop { align-items: center; justify-content: flex-end; padding-right: max(24px, calc((100vw - 1080px) / 2)); }
+  .sheet.paopao-sheet { width: 420px; max-width: 420px; height: min(78dvh, 720px); border-radius: 24px; }
+}
+@media (max-width: 360px) {
+  .paopao-chat-new { padding: 0 9px; font-size: 11px; }
+  .paopao-movie-save { width: 54px; }
+  .paopao-chat-body, .paopao-chat-foot { padding-inline: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paopao-layer { transition: opacity 120ms linear; }
+  .paopao-layer.is-floating .paopao-ball, .paopao-dot, .paopao-msg-thinking { animation: none; }
+  .paopao-face .bubble-shell { animation: none !important; }
+  .paopao-face .thinking-dots circle, .paopao-face .mouth-line, .paopao-face .mouth-open { animation: none !important; }
+  .paopao-face.base-thinking .thinking-dots { opacity: 1; }
+  .paopao-bubble { animation: none; }
+}

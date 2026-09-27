@@ -34,9 +34,11 @@ export function getMovieTheme(movie = {}, mood = '', themeMode = 'dark') {
   const palette = WEATHER[mood];
   const seed = hash(movie.id ?? movie.title);
   const custom = hex(movie.themeColor);
-  // Mood stays dominant; controlled mixing gives films in the same mood distinct cards.
+  // Mood stays dominant; a restrained per-film tint prevents consecutive cards in one genre
+  // from feeling like the same theme while keeping the genre identity recognizable.
   const moodBase = palette ? mixColor(palette.a, palette.b, (seed % 5) * .13) : null;
-  const base = custom || (moodBase ? mixColor(moodBase, genreColor, .23 + (seed % 3) * .07) : genreColor);
+  const variedGenre = mixColor(genreColor, seed % 2 ? '#ffffff' : '#101828', .035 + (seed % 9) * .012);
+  const base = custom || (moodBase ? mixColor(moodBase, genreColor, .23 + (seed % 3) * .07) : variedGenre);
   const background = mixColor(base, themeMode === 'dark' ? '#171923' : '#ffffff', themeMode === 'dark' ? .12 : .07);
   return {
     background, backgroundAlt: mixColor(base, '#151a27', .36), accent: base,
