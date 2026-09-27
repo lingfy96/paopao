@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { axisOf, clamp, lerp, rubberBand, shouldCommit, claimGesture, releaseGesture, ownsGesture, nearestEdge } from '../src/lib/fluid.js';
+import { axisOf, clamp, lerp, rubberBand, shouldCommit, claimGesture, releaseGesture, ownsGesture, nearestEdge, isInteractive } from '../src/lib/fluid.js';
 
 test('rubber band is softer than the raw offset and never hard-stops at zero', () => {
   const pulled = rubberBand(120, 300);
@@ -38,4 +38,11 @@ test('edge snap picks the nearer side', () => {
 test('lerp and clamp stay boring on purpose', () => {
   assert.equal(lerp(0, 10, 0.5), 5);
   assert.equal(clamp(12, 0, 3), 3);
+});
+
+test('interactive controls are recognized so page/sheet drags do not steal taps', () => {
+  const hit = (tag) => ({ closest: (sel) => sel.split(',').some((s) => s.trim() === tag) ? true : null });
+  assert.equal(isInteractive(hit('button')), true);
+  assert.equal(isInteractive(hit('[data-gesture="chips"]')), true);
+  assert.equal(isInteractive(hit('div')), false);
 });

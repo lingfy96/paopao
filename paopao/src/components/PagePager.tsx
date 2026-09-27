@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  animateSpring, axisOf, claimGesture, clamp, gestureKind, isEdgeX, ownsGesture,
+  animateSpring, axisOf, claimGesture, clamp, gestureKind, isEdgeX, isInteractive, ownsGesture,
   releaseGesture, rubberBand, shouldCommit, createVelocity,
 } from '../lib/fluid.js';
 
@@ -77,6 +77,7 @@ export default function PagePager({ index, count = 3, onIndex, onProgress, child
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     const kind = gestureKind(e.target as Element);
     if (kind && kind !== 'page' && !isEdgeX(e.clientX, widthOf())) return;
+    if (isInteractive(e.target) && !isEdgeX(e.clientX, widthOf())) return;
     const last = stopSpring();
     drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, origin: last.x, axis: '' };
     speed.current.reset();

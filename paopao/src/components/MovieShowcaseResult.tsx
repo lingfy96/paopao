@@ -203,6 +203,11 @@ export default function MovieShowcaseResult(props: Props) {
       <button className="showcase-next" aria-label={props.againLabel} disabled={changing || props.againDisabled} onClick={again}>
         <span>{phase === 'leaving' ? '正在抽下一张…' : props.againLabel}</span><ArrowRight size={22} aria-hidden />
       </button>
+      <button className="showcase-where" aria-label="去哪里看" disabled={changing} onClick={props.onWhere}>
+        <Clapperboard size={18} />
+        <span>去哪里看</span>
+        <ArrowRight size={20} aria-hidden />
+      </button>
       {props.error && <p className="showcase-error" role="alert">{props.error}</p>}
       <div className="showcase-secondary">
         <button aria-label={props.inWatch ? '取消想看' : '想看'} aria-pressed={props.inWatch} disabled={changing} onClick={props.onWatch}>
@@ -228,7 +233,6 @@ export default function MovieShowcaseResult(props: Props) {
         {data?.synopsis && <p>{data.synopsis}</p>}
         {!!data?.actors.length && <p>演员：{data.actors.join('、')}</p>}
         <p className="showcase-source">{props.source} · 评分为片库参考值</p>
-        <button aria-label="去哪里看" onClick={props.onWhere}><Clapperboard size={17} />去哪里看<ArrowRight size={16} /></button>
       </details>
     </div>}
     <span className="showcase-sr" role="status" aria-live="polite">{!busy && movie ? `已切换至《${movie.title}》` : ''}</span>

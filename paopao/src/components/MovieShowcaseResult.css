@@ -59,6 +59,10 @@
 .showcase-next { width: 100%; min-height: 57px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 20px; border-radius: 17px; background: #202421; color: #fffdf6; font-weight: 650; font-size: 15px; }
 .showcase-next > svg { flex-shrink: 0; }
 .showcase-next:disabled { opacity: .65; }
+.showcase-where { width: 100%; min-height: 52px; margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 20px; border-radius: 16px; border: 1.5px solid color-mix(in srgb, var(--showcase-on-theme) 55%, transparent); background: color-mix(in srgb, var(--showcase-card) 82%, transparent); color: var(--showcase-on-theme); font-weight: 650; font-size: 15px; }
+.showcase-where > svg:first-child { flex-shrink: 0; }
+.showcase-where > span { flex: 1; text-align: left; }
+.showcase-where:disabled { opacity: .65; }
 .showcase-secondary { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 10px; }
 .showcase-secondary button { display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid color-mix(in srgb, var(--showcase-on-theme) 32%, transparent); border-radius: 15px; min-height: 48px; font-size: 13px; color: var(--showcase-on-theme); background: transparent; }
 .showcase-secondary button[aria-pressed='true'] { background: var(--showcase-card); border-color: var(--showcase-card); color: #202421; }

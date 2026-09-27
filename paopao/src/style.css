@@ -282,7 +282,7 @@ main { position: relative; z-index: 1; max-width: 480px; margin: auto; min-heigh
 .section-heading h1 { margin: 0; }
 .search { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 16px; padding: 0 6px 0 14px; color: var(--muted); }
 .search input { border: 0; background: none; padding-left: 0; }
-.scroll-chips { overflow-x: auto; margin: 14px -20px 10px; padding: 0 20px; scrollbar-width: none; }
+.scroll-chips { overflow-x: auto; margin: 14px -20px 10px; padding: 0 20px; scrollbar-width: none; touch-action: pan-x; }
 .scroll-chips::-webkit-scrollbar { display: none; }
 .scroll-chips .chips { width: max-content; flex-wrap: nowrap; }
 .movie-button { display: block; width: 100%; text-align: left; border-radius: 14px; }
@@ -582,6 +582,7 @@ main { position: relative; z-index: 1; max-width: 480px; margin: auto; min-heigh
 .onboarding .chips { margin: 18px 0; }
 .onboarding .chip { min-height: 40px; font-size: 13px; }
 .onboarding .primary { margin-top: 18px; }
+.sheet > .primary { margin-top: 14px; }
 .sheet-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
 .sheet-actions button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; }
 .sheet-actions button.on { color: var(--accent); border-color: var(--accent); }

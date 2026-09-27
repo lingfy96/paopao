@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import { animateSpring, axisOf, claimGesture, createVelocity, ownsGesture, releaseGesture, rubberBand, shouldCommit } from '../lib/fluid.js';
+import { animateSpring, axisOf, claimGesture, createVelocity, isInteractive, ownsGesture, releaseGesture, rubberBand, shouldCommit } from '../lib/fluid.js';
 
 /** Shared visual shell, with keyboard focus containment and background scroll lock. */
 export default function BottomSheet({ children, onClose, label = '操作菜单', className = '', hideClose = false, closing = false }: {
@@ -51,6 +51,7 @@ export default function BottomSheet({ children, onClose, label = '操作菜单',
 
   function down(e: React.PointerEvent, force = false) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (!force && isInteractive(e.target)) return;
     if (!force && (panel.current?.scrollTop || 0) > 2) return;
     stop();
     drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, origin: motion.current.y, axis: force ? 'y' : '' };

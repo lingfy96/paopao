@@ -911,7 +911,7 @@ function App() {
                   </button>
                 )}
               </div>
-              <div className="scroll-chips">
+              <div className="scroll-chips" data-gesture="chips">
                 <div className="chips">
                   <button className={onlyFav ? 'chip selected' : 'chip'} aria-pressed={onlyFav} onClick={() => setOnlyFav((v) => !v)}>
                     <Bookmark size={14} fill={onlyFav ? 'currentColor' : 'none'} />
@@ -1329,10 +1329,13 @@ function App() {
               </div>
             )}
 
-            {sheet === 'watch' && (
+            {(sheet === 'watch' || sheet.startsWith('watch:')) && (() => {
+              const watching = sheet.startsWith('watch:') ? byId.get(Number(sheet.slice(6))) : current;
+              const q = encodeURIComponent(watching?.title || '');
+              return (
               <>
                 <h2>去哪里看？</h2>
-                <p>打开平台搜索，片源和会员要求以平台实时结果为准。</p>
+                <p>{watching ? `搜《${watching.title}》。` : '打开平台搜索。'}片源和会员要求以平台实时结果为准。</p>
                 {[
                   ['腾讯视频', 'https://v.qq.com/x/search/?q='],
                   ['爱奇艺', 'https://so.iqiyi.com/so/q_'],
@@ -1340,13 +1343,14 @@ function App() {
                   ['哔哩哔哩', 'https://search.bilibili.com/all?keyword='],
                   ['Netflix', 'https://www.netflix.com/search?q='],
                 ].map(([name, url]) => (
-                  <a className="menu-row" href={url + encodeURIComponent(current?.title || '')} target="_blank" rel="noreferrer" key={name}>
+                  <a className="menu-row" href={url + q} target="_blank" rel="noreferrer" key={name}>
                     {name}
                     <ChevronRight size={18} />
                   </a>
                 ))}
               </>
-            )}
+              );
+            })()}
 
             {sheet.startsWith('movie:') &&
               (() => {
@@ -1357,6 +1361,10 @@ function App() {
                     {movieRow(m)}
                     <p>{m.synopsis}</p>
                     <p className="muted">{m.actors.join(' / ')}</p>
+                    <button className="primary" onClick={() => openSheet('watch:' + m.id)}>
+                      <Clapperboard size={18} />
+                      去哪里看
+                    </button>
                     <div className="sheet-actions">
                       <button className={isFav(m.id) ? 'on' : ''} onClick={() => toggleFav(m)}>
                         <Bookmark size={18} fill={isFav(m.id) ? 'currentColor' : 'none'} />

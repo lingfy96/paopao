@@ -118,6 +118,11 @@ export function gestureKind(target) {
   return target?.closest?.('[data-gesture]')?.getAttribute('data-gesture') || '';
 }
 
+const INTERACTIVE = 'button, a, input, textarea, select, summary, label, [role="slider"], [role="radio"], [role="option"], [data-gesture="local"], [data-gesture="chips"]';
+export function isInteractive(target) {
+  return !!target?.closest?.(INTERACTIVE);
+}
+
 export function isEdgeX(clientX, width = typeof window === 'undefined' ? 0 : window.innerWidth) {
   return clientX <= EDGE || clientX >= width - EDGE;
 }
