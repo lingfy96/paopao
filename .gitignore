@@ -22,3 +22,5 @@ tmp/
 *.mp4
 *.webm
 *.tsbuildinfo
+.s/
+.fc-config/
