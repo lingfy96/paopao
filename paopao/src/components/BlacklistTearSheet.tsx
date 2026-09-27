@@ -179,7 +179,7 @@ export default function BlacklistTearSheet({ items, onChange }: { items: Blackli
 
   return <section ref={root} className="blacklist-roll-section" aria-label="黑名单">
     <p className="muted paper-description">黑名单优先于所有偏好。</p>
-    <div className={`tear-sheet ${expanded ? 'paper-expanded' : ''} ${items.length ? '' : 'paper-empty'} ${emptyFrom ? 'paper-empty-returning' : ''}`} style={{ '--empty-start': `${emptyFrom}px` } as React.CSSProperties}>
+    <div data-gesture="local" className={`tear-sheet ${expanded ? 'paper-expanded' : ''} ${items.length ? '' : 'paper-empty'} ${emptyFrom ? 'paper-empty-returning' : ''}`} style={{ '--empty-start': `${emptyFrom}px` } as React.CSSProperties}>
       <div className="paper-slot" aria-hidden="true" />
       <div className="paper-sheet">
         <div className="paper-under" aria-hidden="true" />

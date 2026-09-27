@@ -4,6 +4,7 @@ import BottomSheet from './BottomSheet';
 import PaopaoCharacter from './PaopaoCharacter';
 import { DURATION_STOPS, SCORE_TIERS, activeCount, defaultFilters, normalizeFilters, summarizeFilters } from '../lib/filters.js';
 import { haptic, reducedMotion, sfx } from '../lib/fx.js';
+import { claimGesture, releaseGesture } from '../lib/fluid.js';
 import './LibraryFilterSheet.css';
 
 export type LibraryFilters = { minRating: number; platform: string[]; maxDuration: number; genre: string[] };
@@ -49,6 +50,7 @@ function useAxisDrag(h: {
     if (!s || s.id !== e.pointerId) return;
     state.current = null;
     if (s.active) {
+      releaseGesture(e.pointerId, 'local');
       suppressUntil.current = performance.now() + 400;
       hr.current.onRelease(cancelled);
     } else if (!cancelled) hr.current.onTap?.(e);
@@ -71,6 +73,7 @@ function useAxisDrag(h: {
       }
       if (dx < slop || dx < dy * 1.2) return;
       s.active = true;
+      if (!claimGesture(e.pointerId, 'local')) { state.current = null; return; }
       try {
         (e.currentTarget as Element).setPointerCapture(e.pointerId);
       } catch {
@@ -164,7 +167,7 @@ function ScoreRail({ value, onChange, onLook, onSnap }: { value: number; onChang
   }
 
   return (
-    <div ref={track} className={`fs-score ${dragging ? 'is-dragging' : ''}`} role="radiogroup" aria-label="评分" {...drag}>
+    <div ref={track} data-gesture="local" className={`fs-score ${dragging ? 'is-dragging' : ''}`} role="radiogroup" aria-label="评分" {...drag}>
       <span className="fs-score-line" aria-hidden="true" />
       <div ref={rail} className="fs-score-rail" style={{ '--sel': frac(index) } as React.CSSProperties} aria-hidden="true">
         <span className={`fs-drag-bubble ${pop.on ? 'is-popping' : ''}`} key={pop.key} />
@@ -392,6 +395,7 @@ function DurationArc({ value, onChange, onLook, onSnap }: { value: number; onCha
         <span className="fs-num-unit">{stop.value ? '分钟以内' : '不限时长'}</span>
       </div>
       <div
+        data-gesture="local"
         className={`fs-arc ${dragging ? 'is-dragging' : ''}`}
         role="slider"
         tabIndex={0}

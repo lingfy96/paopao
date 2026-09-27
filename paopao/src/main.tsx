@@ -29,8 +29,10 @@ import BottomSheet from './components/BottomSheet';
 import LibraryFilterSheet from './components/LibraryFilterSheet';
 import { blacklistId } from './lib/blacklist.js';
 import PaopaoAssistant from './components/PaopaoAssistant';
+import PagePager from './components/PagePager';
 import { emit as assistantEmit } from './lib/assistantEvents.js';
 import './style.css';
+import './lib/fluid.css';
 
 type Movie = (typeof movies)[number] & { reason?: string; rarity?: string; score?: number; hits?: number };
 
@@ -42,6 +44,7 @@ const PARENT: Record<string, string> = {
   '/mbti': '/', '/mood': '/', '/result': '/', '/share': '/', '/profile': '/me', '/couple': '/me', '/aquarium': '/me',
   '/memories': '/me', '/history': '/me',
 };
+const SECTIONS = ['/', '/library', '/me'] as const;
 const apiEnabled = () => (window as any).__PAOPAO_API__ === 1 || import.meta.env.VITE_USE_API === '1';
 const validRound = (list: any[]) => list.filter((m) => m && typeof m.id === 'number' && byId.has(m.id) && m.title);
 
@@ -101,6 +104,8 @@ function App() {
   const [intro, setIntro] = useState(true);
   const landscape = useLandscape();
   const guard = useRef(false);
+  const lastInSection = useRef<Record<string, string>>({ '/': '/', '/library': '/library', '/me': '/me' });
+  const [pagerProgress, setPagerProgress] = useState(0);
   const toastTimer = useRef(0);
   const sheetPushed = useRef(false);
   const afterClose = useRef<string | null>(null);
@@ -338,20 +343,10 @@ function App() {
     }
   }
 
-  async function selectResult(index: number) {
-    if (guard.current || locked || index === selected || !round[index]) return;
-    guard.current = true;
-    setBusy(true);
+  function selectResult(index: number) {
+    if (locked || index === selected || !round[index]) return;
+    setSelected(index);
     setResultError('');
-    try {
-      setSelected(index);
-      setReveal({ phase: 'flip' });
-      await sleep(reducedMotion() ? SHOWCASE_TIMING.reduced : SHOWCASE_TIMING.switch);
-    } finally {
-      setReveal({ phase: 'done' });
-      setBusy(false);
-      guard.current = false;
-    }
   }
 
   // ---------- list actions ----------
@@ -602,6 +597,10 @@ function App() {
   };
 
   const section = page === '/library' ? '/library' : ['/', '/mbti', '/mood', '/result', '/share'].includes(page) ? '/' : '/me';
+  lastInSection.current[section] = page;
+  const sectionIndex = section === '/library' ? 1 : section === '/me' ? 2 : 0;
+  const openRoute = lastInSection.current['/'];
+  const meRoute = lastInSection.current['/me'];
   const phase = reveal.phase;
   const revealing = phase !== 'done';
   const againLabel = !locked && round.length >= ROUND_MAX ? '本盒已翻完' : '再来一张';
@@ -655,8 +654,9 @@ function App() {
           </div>
         </header>
 
-        <div className="page" key={page}>
-          {page === '/' && (
+        <PagePager index={sectionIndex} onIndex={(i) => nav(lastInSection.current[SECTIONS[i]] || SECTIONS[i])} onProgress={setPagerProgress}>
+        <div className="page">
+          {openRoute === '/' && (
             <div className="home">
               <div className="home-title">
                 <div className="eyebrow">今晚看什么？</div>
@@ -787,7 +787,7 @@ function App() {
             </div>
           )}
 
-          {page === '/mbti' && (
+          {openRoute === '/mbti' && (
             <>
               {backHeader('找到你的人格频率')}
               <p className="intro">不定义你，只是多懂你一点。</p>
@@ -811,7 +811,7 @@ function App() {
             </>
           )}
 
-          {page === '/mood' && (
+          {openRoute === '/mood' && (
             <>
               {backHeader('今晚什么心情？')}
               <div className="mood-intro">
@@ -842,7 +842,7 @@ function App() {
             </>
           )}
 
-          {page === '/result' &&
+          {openRoute === '/result' &&
             (current || revealing ? (
               <>
                 {backHeader('今晚的放映')}
@@ -867,7 +867,7 @@ function App() {
               </div>
             ))}
 
-          {page === '/share' && (
+          {openRoute === '/share' && (
             <>
               {backHeader(poster?.title || '分享卡')}
               {poster ? (
@@ -891,7 +891,9 @@ function App() {
             </>
           )}
 
-          {page === '/library' && (
+        </div>
+        <div className="page">
+          {(
             <>
               <div className="section-heading">
                 <h1>故事放映厅</h1>
@@ -944,8 +946,9 @@ function App() {
               )}
             </>
           )}
-
-          {page === '/me' && (
+        </div>
+        <div className="page">
+          {meRoute === '/me' && (
             <>
               <h1 className="page-title">我的放映室</h1>
               <div className="profile-card">
@@ -1109,7 +1112,7 @@ function App() {
             </>
           )}
 
-          {page === '/history' && (
+          {meRoute === '/history' && (
             <>
               {backHeader('开盒足迹')}
               {history.length ? (
@@ -1131,7 +1134,7 @@ function App() {
             </>
           )}
 
-          {page === '/memories' && (
+          {meRoute === '/memories' && (
             <>
               {backHeader(
                 `纪念墙 · ${memories.length}`,
@@ -1154,7 +1157,7 @@ function App() {
             </>
           )}
 
-          {page === '/aquarium' && (
+          {meRoute === '/aquarium' && (
             <>
               {backHeader('故事蛋 · 水族箱')}
               <Aquarium creatures={egg.creatures} xp={egg.xp} onEgg={feedEgg} />
@@ -1190,14 +1193,14 @@ function App() {
             </>
           )}
 
-          {page === '/profile' && (
+          {meRoute === '/profile' && (
             <>
               {backHeader(editing === 'partner' ? '另一半的观影画像' : '你的观影画像')}
               {renderProfile()}
             </>
           )}
 
-          {page === '/couple' && (
+          {meRoute === '/couple' && (
             <>
               {backHeader('两个人的默契')}
               <div className="couple-hero">
@@ -1235,14 +1238,18 @@ function App() {
             </>
           )}
         </div>
+        </PagePager>
 
-        <nav className="tabbar" aria-label="主导航">
+        <nav className="tabbar" aria-label="主导航" style={{ '--pager-progress': pagerProgress } as React.CSSProperties}>
+          <i className="tab-indicator" aria-hidden />
           {[
             ['/', '开盒', <Sparkles key="a" />],
             ['/library', '片库', <Clapperboard key="b" />],
             ['/me', '我的', <User key="c" />],
-          ].map(([url, label, icon]: any) => (
-            <button key={url} className={section === url ? 'active' : ''} aria-current={section === url ? 'page' : undefined} onClick={() => page !== url && nav(url)}>
+          ].map(([url, label, icon]: any, i: number) => (
+            <button key={url} className={section === url ? 'active' : ''} aria-current={section === url ? 'page' : undefined}
+              style={{ '--tab-on': String(Math.max(0, 1 - Math.abs(pagerProgress - i))) } as React.CSSProperties}
+              onClick={() => section !== url && nav(lastInSection.current[url] || url)}>
               {icon}
               <span>{label}</span>
             </button>

@@ -11,6 +11,7 @@ import {
 } from '../lib/paopaoChat.js';
 import { haptic, reducedMotion, sfx } from '../lib/fx.js';
 import { onMany } from '../lib/assistantEvents.js';
+import { animateSpring, claimGesture, clamp, createVelocity, nearestEdge, ownsGesture, releaseGesture } from '../lib/fluid.js';
 import './PaopaoAssistant.css';
 
 const BALL = 56;
@@ -59,7 +60,7 @@ export default function PaopaoAssistant({ snapshot, hidden, accent, moods, movie
   const [face, setFace] = useState(() => machine.snapshot().className);
   const [blinking, setBlinking] = useState(false);
   const [mode, setMode] = useState<'docked' | 'floating'>('docked');
-  const [side] = useState<'right' | 'left'>('right');
+  const [side, setSide] = useState<'right' | 'left'>('right');
   const [open, setOpen] = useState(false);
   const [place, setPlace] = useState<Placement>({ x: -999, y: -999, scale: DOCK_SCALE });
   const [placed, setPlaced] = useState(false);
@@ -71,6 +72,11 @@ export default function PaopaoAssistant({ snapshot, hidden, accent, moods, movie
   const [pendingAction, setPendingAction] = useState<{ name: string; params: any; label: string } | null>(null);
 
   const ballRef = useRef<HTMLButtonElement>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ id: number; x: number; y: number; ox: number; oy: number; moved: boolean } | null>(null);
+  const hold = useRef({ x: 0, y: 0, v: 0, spring: null as { stop: () => { x: number; v: number } } | null });
+  const speed = useRef(createVelocity());
+  const [held, setHeld] = useState(false);
   const seen = useRef(new Map<string, number>());
   const bubbleTimer = useRef(0);
   const idleTimer = useRef(0);
@@ -84,6 +90,7 @@ export default function PaopaoAssistant({ snapshot, hidden, accent, moods, movie
 
   // ---------- placement ----------
   const reposition = useCallback(() => {
+    if (drag.current) return;
     setPlace(placeBall(live.current.open ? 'chat' : mode, live.current.snapshot.page, side));
   }, [mode, side]);
 
@@ -350,19 +357,90 @@ export default function PaopaoAssistant({ snapshot, hidden, accent, moods, movie
     setTimeout(() => ballRef.current?.focus({ preventScroll: true }), 0);
   }, []);
 
+  const paintBall = (x: number, y: number, jellyX = 1, jellyY = 1) => {
+    hold.current.x = x; hold.current.y = y;
+    const el = layerRef.current;
+    if (!el) return;
+    el.style.setProperty('--paopao-x', `${x}px`);
+    el.style.setProperty('--paopao-y', `${y}px`);
+    el.style.setProperty('--paopao-jelly-x', String(jellyX));
+    el.style.setProperty('--paopao-jelly-y', String(jellyY));
+  };
+  const stopBall = () => {
+    hold.current.spring?.stop();
+    hold.current.spring = null;
+    return hold.current;
+  };
+  const snapBall = (vx: number, vy: number) => {
+    const destY = clamp(hold.current.y + vy * 0.08, 64, window.innerHeight - BALL - 118);
+    const destX = nearestEdge(hold.current.x + vx * 0.14, window.innerWidth, BALL, 12);
+    setSide(destX < window.innerWidth / 2 ? 'left' : 'right');
+    setMode('floating');
+    stopBall();
+    hold.current.spring = animateSpring({
+      from: hold.current.x, to: destX, velocity: vx, tension: 210, friction: 20,
+      onUpdate: (x) => paintBall(x, hold.current.y),
+      onComplete: () => {
+        hold.current.spring = null;
+        setPlace({ x: destX, y: destY, scale: 1 });
+        setHeld(false);
+      },
+    });
+    animateSpring({
+      from: hold.current.y, to: destY, velocity: vy, tension: 260, friction: 26,
+      onUpdate: (y) => paintBall(hold.current.x, y),
+    });
+  };
+  const onBallDown = (e: React.PointerEvent) => {
+    if (open || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    stopBall();
+    setHeld(true);
+    setBlinking(false);
+    const start = layerRef.current?.getBoundingClientRect();
+    drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, ox: start?.left ?? place.x, oy: start?.top ?? place.y, moved: false };
+    speed.current.reset();
+    speed.current.add(e.clientX, e.clientY);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* */ }
+    claimGesture(e.pointerId, 'ball');
+  };
+  const onBallMove = (e: React.PointerEvent) => {
+    const g = drag.current;
+    if (!g || g.id !== e.pointerId || !ownsGesture(e.pointerId, 'ball')) return;
+    const dx = e.clientX - g.x, dy = e.clientY - g.y;
+    if (!g.moved && Math.hypot(dx, dy) < 8) return;
+    g.moved = true;
+    setMode('floating');
+    speed.current.add(e.clientX, e.clientY);
+    const { vx, vy } = speed.current.read();
+    const jellyX = clamp(1 + vx / 4200, 0.94, 1.06);
+    const jellyY = clamp(1 + vy / 4200, 0.94, 1.06);
+    paintBall(g.ox + dx, clamp(g.oy + dy, 8, window.innerHeight - BALL - 24), jellyX, 2 - jellyY);
+  };
+  const onBallUp = (e: React.PointerEvent) => {
+    const g = drag.current;
+    if (!g || g.id !== e.pointerId) return;
+    drag.current = null;
+    releaseGesture(e.pointerId, 'ball');
+    if (!g.moved) { setHeld(false); openChat(); return; }
+    const { vx, vy } = speed.current.read();
+    snapBall(vx, vy);
+  };
+
   const prompts = useMemo(() => quickPrompts(snapshot), [snapshot]);
   const invisible = hidden || (place.x < -100);
   const busy = status === 'pending' || status === 'streaming';
 
   return <>
-    {createPortal(<div className={`paopao-layer ${open ? 'is-chat' : `is-${mode}`} ${invisible ? 'is-hidden' : ''} ${placed ? '' : 'is-fixing'}`}
+    {createPortal(<div ref={layerRef} data-gesture="ball" className={`paopao-layer ${open ? 'is-chat' : `is-${mode}`} ${invisible ? 'is-hidden' : ''} ${placed ? '' : 'is-fixing'} ${held ? 'is-held' : ''}`}
       style={{
         '--paopao-x': `${place.x}px`, '--paopao-y': `${place.y}px`, '--paopao-scale': place.scale,
         '--paopao-accent': accent || 'var(--mood-a)',
       } as React.CSSProperties}>
       <button ref={ballRef} className={`paopao-ball ${busy ? 'is-busy' : ''} ${unread ? 'has-news' : ''}`}
         aria-label={busy ? '泡泡正在回答，点击查看' : '打开泡泡 AI 助手'} aria-expanded={open} aria-haspopup="dialog"
-        tabIndex={open ? -1 : 0} onClick={() => openChat()}>
+        tabIndex={open ? -1 : 0}
+        onPointerDown={onBallDown} onPointerMove={onBallMove}
+        onPointerUp={onBallUp} onPointerCancel={onBallUp}>
         <PaopaoCharacter state={face} blinking={blinking} size={BALL} />
         {unread && <span className="paopao-dot" aria-hidden />}
       </button>

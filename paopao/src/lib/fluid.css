@@ -1,0 +1,37 @@
+/* Shared fluid interaction: pager, presses, sheets. Springs themselves run in JS. */
+.pager { position: relative; overflow: hidden; touch-action: pan-y; min-height: calc(100dvh - 132px); }
+.pager-track { display: flex; width: 300%; will-change: transform; }
+.pager-pane { width: 33.333%; min-width: 0; }
+.pager-pane .page { animation: none; }
+.pager-pane[inert] { pointer-events: none; user-select: none; content-visibility: auto; contain-intrinsic-size: 100% 720px; }
+
+.tabbar { isolation: isolate; }
+.tab-indicator {
+  position: absolute; z-index: 0; left: max(16px, env(safe-area-inset-left));
+  width: calc((100% - max(16px, env(safe-area-inset-left)) - max(16px, env(safe-area-inset-right)) - 12px) / 3);
+  height: 52px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 14%, transparent);
+  transform: translateX(calc(var(--pager-progress, 0) * 100%));
+  pointer-events: none;
+}
+.tabbar button { position: relative; z-index: 1; color: color-mix(in srgb, var(--accent) calc(var(--tab-on, 0) * 100%), var(--muted)); }
+.tabbar button svg { transform: translateY(calc(var(--tab-on, 0) * -1px)) scale(calc(1 + var(--tab-on, 0) * .06)); filter: drop-shadow(0 0 calc(var(--tab-on, 0) * 8px) color-mix(in srgb, var(--accent) 50%, transparent)); }
+
+.icon-btn:active:not(:disabled) { transform: scale(.94); }
+.chip:active:not(:disabled), .mood-chip:active:not(:disabled), .pill:active:not(:disabled) { transform: scale(.97); }
+.primary:active:not(:disabled), .showcase-next:active:not(:disabled) { transform: scale(.975); }
+
+.modal-backdrop { animation: none; opacity: var(--sheet-dim, 1); transition: none; }
+.sheet { animation: none; transform: translate3d(0, var(--sheet-y, 0px), 0); }
+.modal-backdrop:not(.is-dragging):not(.is-closing) { animation: fadein 0.22s var(--ease); }
+.modal-backdrop:not(.is-dragging):not(.is-closing) .sheet { animation: sheetin 0.34s var(--ease); }
+.modal-backdrop.is-dragging .sheet, .modal-backdrop.is-settling .sheet { animation: none; }
+.sheet-handle { touch-action: none; cursor: grab; }
+
+.paopao-layer.is-held { transition: none; }
+.paopao-layer.is-held .paopao-ball { animation: none; transform: scale(var(--paopao-jelly-x, 1), var(--paopao-jelly-y, 1)); }
+.paopao-layer.is-floating:not(.is-held) .paopao-ball { animation: paopao-bob 7s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-indicator { transition: transform 120ms ease; }
+  .paopao-layer.is-floating .paopao-ball { animation: none; }
+}

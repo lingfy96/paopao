@@ -2,6 +2,10 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 import { ArrowRight, Bookmark, Check, ChevronDown, Clapperboard, Clock, Film, Share2, Star, Ticket } from 'lucide-react';
 import { getMovieTheme, normalizeMovieCardData, showcaseVariables, SHOWCASE_TIMING } from '../lib/showcase.js';
 import { reducedMotion } from '../lib/fx.js';
+import {
+  animateSpring, axisOf, CARD_DISTANCE, CARD_FLICK, claimGesture, createVelocity,
+  isEdgeX, lerp, ownsGesture, releaseGesture, rubberBand, shouldCommit,
+} from '../lib/fluid.js';
 import type { RevealPhase } from './Reveal';
 import './MovieShowcaseResult.css';
 
@@ -63,75 +67,140 @@ export default function MovieShowcaseResult(props: Props) {
   const snapshot = movie ? { movie, mood, themeMode } : null;
   const previous = useRef<Snapshot | null>(phase === 'silhouette' ? null : snapshot);
   const stageRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ pointer: number; x: number; y: number; dx: number; axis: '' | 'x' | 'y' }>({ pointer: -1, x: 0, y: 0, dx: 0, axis: '' });
+  const currentRef = useRef<HTMLDivElement>(null);
+  const nextRef = useRef<HTMLDivElement>(null);
+  const prevRef = useRef<HTMLDivElement>(null);
+  const skipCss = useRef(false);
+  const motion = useRef({ x: 0, v: 0, spring: null as { stop: () => { x: number; v: number } } | null });
+  const drag = useRef<{ id: number; x: number; y: number; origin: number; axis: '' | 'x' | 'y' } | null>(null);
+  const speed = useRef(createVelocity());
   const [transition, setTransition] = useState<{ outgoing: Snapshot | null; kind: 'rest' | 'initial' | 'next'; stamp: number }>({ outgoing: null, kind: 'rest', stamp: 0 });
   const preparing = phase === 'silhouette' || !movie;
+  const prevMovie = props.round[props.selected - 1];
+  const nextMovie = props.round[props.selected + 1];
+  const canPrev = !!prevMovie;
+  const canNext = !!nextMovie || !props.againDisabled;
   useLayoutEffect(() => {
     if (phase === 'silhouette') { previous.current = null; setTransition((state) => ({ ...state, outgoing: null, kind: 'rest' })); return; }
     if (!snapshot || (previous.current?.movie === movie && previous.current !== null)) return;
     const old = previous.current;
     previous.current = snapshot;
+    if (skipCss.current) {
+      skipCss.current = false;
+      paint(0, 0);
+      setTransition((state) => ({ outgoing: null, kind: 'rest', stamp: state.stamp + 1 }));
+      return;
+    }
     setTransition((state) => ({ outgoing: old, kind: old ? 'next' : 'initial', stamp: state.stamp + 1 }));
-    // The UI always settles even if CSS animations are disabled or animationend never fires.
     const timeout = window.setTimeout(() => setTransition((state) => ({ ...state, outgoing: null, kind: 'rest' })), reducedMotion() ? SHOWCASE_TIMING.reduced : old ? SHOWCASE_TIMING.switch : SHOWCASE_TIMING.reveal);
     return () => clearTimeout(timeout);
   }, [movie, phase === 'silhouette']);
   const changing = busy || transition.kind !== 'rest';
-  const swipeEnabled = !preparing && !changing && !props.againDisabled;
   const data = movie ? normalizeMovieCardData(movie, mood, import.meta.env.BASE_URL) : null;
   const theme = getMovieTheme(movie, mood, themeMode);
-  const clearDrag = () => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    stage.classList.remove('is-dragging');
-    stage.style.removeProperty('--showcase-drag-x');
-    stage.style.removeProperty('--showcase-drag-rotate');
-  };
-  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!swipeEnabled || reducedMotion() || (event.pointerType === 'mouse' && event.button !== 0)) return;
-    drag.current = { pointer: event.pointerId, x: event.clientX, y: event.clientY, dx: 0, axis: '' };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    const state = drag.current;
-    if (state.pointer !== event.pointerId || !swipeEnabled) return;
-    const dx = event.clientX - state.x;
-    const dy = event.clientY - state.y;
-    if (!state.axis && Math.hypot(dx, dy) > 8) state.axis = Math.abs(dx) > Math.abs(dy) * 1.25 ? 'x' : 'y';
-    if (state.axis !== 'x') return;
-    event.preventDefault();
-    const stage = stageRef.current;
-    if (!stage) return;
-    const limit = stage.clientWidth * .38;
-    state.dx = Math.max(-limit, Math.min(limit * .28, dx));
-    stage.classList.add('is-dragging');
-    stage.style.setProperty('--showcase-drag-x', `${state.dx}px`);
-    stage.style.setProperty('--showcase-drag-rotate', `${state.dx / Math.max(stage.clientWidth, 1) * 5}deg`);
-  };
-  const finishDrag = (event: React.PointerEvent<HTMLDivElement>, cancelled = false) => {
-    const state = drag.current;
-    if (state.pointer !== event.pointerId) return;
-    const stage = stageRef.current;
-    const commit = !cancelled && swipeEnabled && state.axis === 'x' && state.dx < -Math.min(84, (stage?.clientWidth || 360) * .2);
-    drag.current = { pointer: -1, x: 0, y: 0, dx: 0, axis: '' };
-    clearDrag();
-    if (commit) props.onAgain();
-  };
+  const widthOf = () => stageRef.current?.clientWidth || 360;
+  function paint(x: number, v = 0) {
+    motion.current.x = x; motion.current.v = v;
+    const w = widthOf();
+    const p = x / w;
+    const depth = lerp(1, 0.955, Math.min(1, Math.abs(p)));
+    const rise = lerp(0.94, 1, Math.min(1, Math.abs(p)));
+    if (currentRef.current) currentRef.current.style.transform = `translate3d(${x}px,0,0) rotate(${p * 3.2}deg) scale(${depth})`;
+    if (nextRef.current) {
+      nextRef.current.style.transform = `translate3d(${x + w}px,0,0) scale(${x < 0 ? rise : 0.94})`;
+      nextRef.current.style.opacity = x < 0 ? String(Math.min(1, -p * 1.35)) : '0';
+    }
+    if (prevRef.current) {
+      prevRef.current.style.transform = `translate3d(${x - w}px,0,0) scale(${x > 0 ? rise : 0.94})`;
+      prevRef.current.style.opacity = x > 0 ? String(Math.min(1, p * 1.35)) : '0';
+    }
+    stageRef.current?.classList.toggle('is-dragging', !!drag.current);
+  }
+  function stopSpring() {
+    if (motion.current.spring) {
+      const last = motion.current.spring.stop();
+      motion.current.spring = null;
+      motion.current.x = last.x; motion.current.v = last.v;
+    }
+    return motion.current;
+  }
+  function bound(raw: number) {
+    const w = widthOf();
+    if (raw > 0 && !canPrev) return rubberBand(raw, w);
+    if (raw < 0 && !canNext) return -rubberBand(-raw, w);
+    return raw;
+  }
+  function go(dir: number) {
+    if (dir < 0 && nextMovie) { skipCss.current = true; props.onSelect(props.selected + 1); }
+    else if (dir < 0) props.onAgain();
+    else if (dir > 0 && prevMovie) { skipCss.current = true; props.onSelect(props.selected - 1); }
+    paint(0, 0);
+  }
+  function settle(to: number, velocity: number, then?: () => void) {
+    stopSpring();
+    motion.current.spring = animateSpring({
+      from: motion.current.x, to, velocity,
+      onUpdate: paint,
+      onComplete: () => { motion.current.spring = null; then ? then() : paint(to, 0); },
+    });
+  }
+  function onPointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (preparing || (event.pointerType === 'mouse' && event.button !== 0) || isEdgeX(event.clientX)) return;
+    const last = stopSpring();
+    drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, origin: last.x, axis: '' };
+    speed.current.reset(); speed.current.add(event.clientX, event.clientY);
+  }
+  function onPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    const g = drag.current;
+    if (!g || g.id !== event.pointerId) return;
+    const dx = event.clientX - g.x, dy = event.clientY - g.y;
+    if (!g.axis) {
+      g.axis = axisOf(dx, dy);
+      if (g.axis === 'y') { drag.current = null; return; }
+      if (g.axis !== 'x') return;
+      if (!claimGesture(event.pointerId, 'card')) { drag.current = null; return; }
+      try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* gone */ }
+    }
+    if (g.axis !== 'x' || !ownsGesture(event.pointerId, 'card')) return;
+    speed.current.add(event.clientX, event.clientY);
+    paint(bound(g.origin + dx));
+  }
+  function finishDrag(event: React.PointerEvent<HTMLDivElement>, cancelled = false) {
+    const g = drag.current;
+    if (!g || g.id !== event.pointerId) return;
+    drag.current = null;
+    releaseGesture(event.pointerId, 'card');
+    const { vx } = speed.current.read();
+    const w = widthOf();
+    const dir = cancelled || g.axis !== 'x' ? 0 : shouldCommit(motion.current.x, vx, w, CARD_DISTANCE, CARD_FLICK);
+    if (dir < 0 && canNext) settle(-w, vx, () => go(-1));
+    else if (dir > 0 && canPrev) settle(w, vx, () => go(1));
+    else settle(0, vx);
+  }
+  function again() {
+    if (props.againDisabled || changing) return;
+    const w = widthOf();
+    settle(-w, 0, () => go(-1));
+  }
 
   return <section className={`showcase-result motif-${theme.motif}`} aria-label="今晚的电影卡" aria-busy={busy}>
     <div className="showcase-decorations" aria-hidden><i /><i /><i /><i /></div>
     <div className="showcase-kicker"><span>今晚，故事属于你</span><span>{String(props.selected + 1).padStart(2, '0')} / {String(props.roundMax).padStart(2, '0')}</span></div>
-    <div ref={stageRef} className={`showcase-stage is-${transition.kind} ${phase === 'leaving' ? 'is-pending' : ''}`}
+    <div ref={stageRef} data-gesture="card" className={`showcase-stage is-${transition.kind} ${phase === 'leaving' ? 'is-pending' : ''}`}
       onPointerDown={onPointerDown} onPointerMove={onPointerMove}
       onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)}>
       <div className="showcase-stack" aria-hidden><i /><i /></div>
       {preparing ? <div className="showcase-mystery" role="status"><span>下一幕</span><Clapperboard size={54} strokeWidth={1} /><h1>故事正在<br />显影。</h1><p>为现在的你，挑一个好故事</p><div className="showcase-loading-line" /></div> :
-        <div className="showcase-current" key={`${movie.id}-${transition.stamp}`}><MovieShowcaseCard {...snapshot!} /></div>}
+        <div ref={currentRef} className="showcase-current" key={`${movie.id}-${transition.stamp}`}><MovieShowcaseCard {...snapshot!} /></div>}
+      {!preparing && nextMovie && <div ref={nextRef} className="showcase-peek" aria-hidden inert>
+        <MovieShowcaseCard movie={nextMovie} mood={mood} themeMode={themeMode} heading={false} /></div>}
+      {!preparing && prevMovie && <div ref={prevRef} className="showcase-peek" aria-hidden inert>
+        <MovieShowcaseCard movie={prevMovie} mood={mood} themeMode={themeMode} heading={false} /></div>}
       {!preparing && transition.outgoing && <div className="showcase-outgoing" aria-hidden inert><MovieShowcaseCard {...transition.outgoing} heading={false} /></div>}
     </div>
     {movie && !preparing && <p className="showcase-swipe-hint" aria-hidden>向左轻扫，也能抽下一张</p>}
     {movie && !preparing && <div className={`showcase-controls ${transition.kind === 'initial' ? 'controls-arriving' : ''}`}>
-      <button className="showcase-next" aria-label={props.againLabel} disabled={changing || props.againDisabled} onClick={props.onAgain}>
+      <button className="showcase-next" aria-label={props.againLabel} disabled={changing || props.againDisabled} onClick={again}>
         <span>{phase === 'leaving' ? '正在抽下一张…' : props.againLabel}</span><ArrowRight size={22} aria-hidden />
       </button>
       {props.error && <p className="showcase-error" role="alert">{props.error}</p>}

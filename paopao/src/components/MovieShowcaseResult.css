@@ -98,7 +98,8 @@
 .showcase-mystery p { font-size: 12px; color: #656b65; }
 .showcase-loading-line { height: 3px; border-radius: 3px; background: var(--showcase-accent); transform-origin: left; animation: showcase-progress 1200ms var(--ease) infinite alternate; }
 @keyframes showcase-progress { from { transform: scaleX(.12); opacity: .35; } to { transform: scaleX(1); opacity: .9; } }
-.showcase-current { transform-origin: 50% 55%; }
+.showcase-current, .showcase-peek { transform-origin: 50% 55%; will-change: transform; }
+.showcase-peek { position: absolute; inset: 0 0 auto; pointer-events: none; opacity: 0; }
 .is-pending .showcase-current { opacity: .78; transform: translateX(-11%) rotate(-1deg) scale(.985); transition: transform 260ms var(--ease), opacity 220ms ease; }
 .showcase-stage.is-rest .showcase-current { transition: transform 360ms var(--ease), opacity 220ms ease; }
 .showcase-stage.is-rest.is-dragging .showcase-current { transform: translateX(var(--showcase-drag-x, 0)) rotate(var(--showcase-drag-rotate, 0)); transition: none; }

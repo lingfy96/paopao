@@ -566,7 +566,6 @@ main { position: relative; z-index: 1; max-width: 480px; margin: auto; min-heigh
 .tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--muted); font-size: 11px; min-height: 52px; border-radius: 14px; }
 .tabbar svg { width: 22px; height: 22px; transition: transform 0.2s var(--spring); }
 .tabbar .active { color: var(--accent); }
-.tabbar .active svg { transform: translateY(-1px) scale(1.06); filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 50%, transparent)); }
 .modal-backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; padding: 12px 10px calc(10px + env(safe-area-inset-bottom)); background: rgba(5, 5, 11, 0.62); animation: fadein 0.25s var(--ease); }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .modal-backdrop { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
